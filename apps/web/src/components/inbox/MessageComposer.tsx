@@ -26,6 +26,14 @@ function preferredAudioMimeType() {
   ) || "";
 }
 
+function normalFileName(fileName: string, mimeType: string) {
+  const base = fileName.replace(/\.[^/.]+$/, "");
+  if (mimeType.includes("ogg")) return `${base}.ogg`;
+  if (mimeType.includes("mp4")) return `${base}.m4a`;
+  if (mimeType.includes("webm")) return `${base}.webm`;
+  return fileName;
+}
+
 export function MessageComposer() {
   const { activeConversationId, sendMessage } = useInbox();
   const [value, setValue] = useState("");
@@ -78,7 +86,7 @@ export function MessageComposer() {
         const finalType = recorder.mimeType || mimeType || "audio/ogg";
         const extension = finalType.includes("mp4") ? "m4a" : finalType.includes("webm") ? "webm" : "ogg";
         const blob = new Blob(chunksRef.current, { type: finalType });
-        const file = new File([blob], `voice-${Date.now()}.${extension}`, { type: blob.type });
+        const file = new File([blob], normalFileName(`voice-${Date.now()}.${extension}`, finalType), { type: blob.type });
         await uploadFile(file);
       };
       recorderRef.current = recorder;

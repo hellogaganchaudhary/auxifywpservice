@@ -290,13 +290,20 @@ export class InboxService {
     const graphBase = process.env.META_GRAPH_BASE || "https://graph.facebook.com/v19.0";
     const url = `${graphBase}/${params.phoneNumberId}/messages`;
     const mediaType = params.attachment ? params.mediaType || this.resolveMediaType(params.attachment.mimeType) : "text";
+    const uploadedMediaId = params.attachment
+      ? await this.uploadWhatsAppMedia({
+          accessToken: params.accessToken,
+          phoneNumberId: params.phoneNumberId,
+          attachment: params.attachment,
+        })
+      : null;
     const body = params.attachment
       ? {
           messaging_product: "whatsapp",
           to: params.to,
           type: mediaType,
           [mediaType]: {
-            link: params.attachment.url,
+            ...(uploadedMediaId ? { id: uploadedMediaId } : { link: params.attachment.url }),
             ...(mediaType === "document" ? { filename: params.attachment.fileName } : {}),
             ...(params.body?.trim() && ["image", "video", "document"].includes(mediaType) ? { caption: params.body.trim() } : {}),
           },
@@ -320,6 +327,43 @@ export class InboxService {
       throw new Error(text);
     }
     return res.json();
+  }
+
+  private async uploadWhatsAppMedia(params: {
+    accessToken: string;
+    phoneNumberId: string;
+    attachment: { url: string; mimeType: string; fileName: string };
+  }) {
+    const mediaResponse = await fetch(params.attachment.url);
+    if (!mediaResponse.ok) {
+      throw new Error(`Unable to read uploaded media: ${await mediaResponse.text()}`);
+    }
+
+    const contentType = params.attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream";
+    const arrayBuffer = await mediaResponse.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: contentType });
+    const formData = new FormData();
+    formData.append("messaging_product", "whatsapp");
+    formData.append("type", contentType);
+    formData.append("file", blob, params.attachment.fileName || "media");
+
+    const graphBase = process.env.META_GRAPH_BASE || "https://graph.facebook.com/v19.0";
+    const response = await fetch(`${graphBase}/${params.phoneNumberId}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${params.accessToken}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`WhatsApp media upload failed: ${text}`);
+    }
+
+    const data = await response.json();
+    if (!data?.id) {
+      throw new Error("WhatsApp media upload did not return media id");
+    }
+    return data.id as string;
   }
 
   private resolveMediaType(mimeType?: string): "image" | "video" | "audio" | "document" {
