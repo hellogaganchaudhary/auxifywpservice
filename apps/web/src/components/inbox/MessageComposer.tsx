@@ -218,7 +218,7 @@ export function MessageComposer() {
           </div>
         ) : null}
         <div className="text-[11px] text-text-muted">
-          Upload image, video, document, or record voice directly. Uploaded media must be served through public HTTPS, so keep ngrok/API public URL configured for WhatsApp delivery.
+          Upload image, MP4 video, document, or record voice directly. MOV videos and recorded audio are converted to WhatsApp-safe formats before delivery.
         </div>
         {error ? <div className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">{error}</div> : null}
       </div>

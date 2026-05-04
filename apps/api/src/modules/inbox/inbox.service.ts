@@ -1,4 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { InboxGateway } from "./inbox.gateway";
@@ -22,6 +28,8 @@ type InboxViewPayload = {
     assignedTo?: string;
   };
 };
+
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class InboxService {
@@ -339,13 +347,23 @@ export class InboxService {
       throw new Error(`Unable to read uploaded media: ${await mediaResponse.text()}`);
     }
 
-    const contentType = params.attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream";
+    const originalContentType = params.attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream";
     const arrayBuffer = await mediaResponse.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: contentType });
+    const originalBuffer = Buffer.from(arrayBuffer);
+    const media = originalContentType.startsWith("audio/")
+      ? await this.convertAudioToWhatsAppOgg(originalBuffer, params.attachment.fileName)
+      : this.isQuickTimeVideo(originalContentType, params.attachment.fileName)
+        ? await this.convertVideoToWhatsAppMp4(originalBuffer, params.attachment.fileName)
+        : {
+            buffer: originalBuffer,
+            contentType: originalContentType,
+            fileName: params.attachment.fileName || "media",
+          };
+    const blob = new Blob([media.buffer], { type: media.contentType });
     const formData = new FormData();
     formData.append("messaging_product", "whatsapp");
-    formData.append("type", contentType);
-    formData.append("file", blob, params.attachment.fileName || "media");
+    formData.append("type", media.contentType);
+    formData.append("file", blob, media.fileName);
 
     const graphBase = process.env.META_GRAPH_BASE || "https://graph.facebook.com/v19.0";
     const response = await fetch(`${graphBase}/${params.phoneNumberId}/media`, {
@@ -364,6 +382,94 @@ export class InboxService {
       throw new Error("WhatsApp media upload did not return media id");
     }
     return data.id as string;
+  }
+
+  private async convertAudioToWhatsAppOgg(buffer: Buffer, fileName?: string) {
+    const workDir = join(tmpdir(), `whatsapp-audio-${randomUUID()}`);
+    const inputPath = join(workDir, fileName || "input-audio");
+    const outputPath = join(workDir, "voice.ogg");
+    try {
+      await mkdir(workDir, { recursive: true });
+      await writeFile(inputPath, buffer);
+      await execFileAsync("ffmpeg", [
+        "-y",
+        "-i",
+        inputPath,
+        "-vn",
+        "-acodec",
+        "libopus",
+        "-b:a",
+        "32k",
+        "-ar",
+        "48000",
+        "-ac",
+        "1",
+        outputPath,
+      ]);
+      return {
+        buffer: await readFile(outputPath),
+        contentType: "audio/ogg",
+        fileName: `${(fileName || "voice").replace(/\.[^/.]+$/, "")}.ogg`,
+      };
+    } catch (error: any) {
+      throw new Error(
+        `Audio conversion failed. Install ffmpeg and upload WhatsApp-supported audio. ${error?.message || ""}`.trim()
+      );
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
+  }
+
+  private isQuickTimeVideo(contentType?: string, fileName?: string) {
+    const lowerName = (fileName || "").toLowerCase();
+    return contentType === "video/quicktime" || lowerName.endsWith(".mov") || lowerName.endsWith(".qt");
+  }
+
+  private async convertVideoToWhatsAppMp4(buffer: Buffer, fileName?: string) {
+    const workDir = join(tmpdir(), `whatsapp-video-${randomUUID()}`);
+    const inputPath = join(workDir, fileName || "input-video.mov");
+    const outputPath = join(workDir, "video.mp4");
+    try {
+      await mkdir(workDir, { recursive: true });
+      await writeFile(inputPath, buffer);
+      await execFileAsync("ffmpeg", [
+        "-y",
+        "-i",
+        inputPath,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-profile:v",
+        "baseline",
+        "-level",
+        "3.0",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-movflags",
+        "+faststart",
+        outputPath,
+      ]);
+      return {
+        buffer: await readFile(outputPath),
+        contentType: "video/mp4",
+        fileName: `${(fileName || "video").replace(/\.[^/.]+$/, "")}.mp4`,
+      };
+    } catch (error: any) {
+      throw new Error(
+        `Video conversion failed. Upload WhatsApp-supported MP4 video or install ffmpeg. ${error?.message || ""}`.trim()
+      );
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
   }
 
   private resolveMediaType(mimeType?: string): "image" | "video" | "audio" | "document" {
