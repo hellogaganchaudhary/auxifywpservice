@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-base: #0a0a0b;
+  --color-bg-surface: #111113;
+  --color-bg-elevated: #1a1a1e;
+  --color-bg-overlay: #222228;
+  --color-border: #2a2a30;
+  --color-border-strong: #3a3a44;
+  --color-accent: #25d366;
+  --color-accent-muted: rgba(37, 211, 102, 0.12);
+  --color-accent-hover: #1ebd5a;
+  --color-text-primary: #f2f2f5;
+  --color-text-secondary: #8a8a9a;
+  --color-text-muted: #56566a;
+  --color-success: #25d366;
+  --color-warning: #f5a623;
+  --color-error: #ff4757;
+  --color-info: #3b9eff;
+  --color-template-tag: #7c5cfc;
+  --font-display: "Syne";
+  --font-body: "DM Sans";
+  --font-mono: "JetBrains Mono";
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  @apply bg-bg-base text-text-primary font-body antialiased;
+}
+
+::selection {
+  background: rgba(37, 211, 102, 0.35);
+}
+
+.container-page {
+  @apply mx-auto w-full max-w-7xl px-6;
+}
+
+.page-title {
+  @apply text-xl font-display;
+}
+
+.page-subtitle {
+  @apply text-sm text-text-secondary;
+}
+
+.table {
+  @apply w-full text-sm;
+}
+
+.table thead {
+  @apply text-xs text-text-muted;
+}
+
+.table tbody tr {
+  @apply border-t border-border;
+}
+
+.table tbody tr:hover {
+  background: rgba(34, 34, 40, 0.3);
+}
+
+.card {
+  @apply rounded-md border border-border bg-bg-surface;
+}

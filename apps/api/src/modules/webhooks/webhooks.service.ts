@@ -1,0 +1,417 @@
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+import { PrismaService } from "../prisma/prisma.service";
+import { InboxGateway } from "../inbox/inbox.gateway";
+import { TeamService } from "../team/team.service";
+
+@Injectable()
+export class WebhooksService {
+  private readonly logger = new Logger(WebhooksService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inboxGateway: InboxGateway,
+    private readonly teamService: TeamService
+  ) {}
+
+  async verify(query: Record<string, string | undefined>) {
+    const mode = query["hub.mode"];
+    const token = query["hub.verify_token"];
+    const challenge = query["hub.challenge"];
+
+    if (mode !== "subscribe" || !challenge) {
+      throw new BadRequestException("Invalid webhook verification request");
+    }
+
+    const matchingConfig = token
+      ? await this.prisma.wabaConfig.findFirst({ where: { webhookVerifyToken: token } })
+      : null;
+    const expected = process.env.META_WEBHOOK_VERIFY_TOKEN;
+
+    if (!token || (!matchingConfig && token !== expected)) {
+      throw new BadRequestException("Webhook verify token mismatch");
+    }
+
+    return challenge;
+  }
+
+  verifySignature(signature: string | undefined, rawBody: Buffer) {
+    const secret = process.env.META_APP_SECRET;
+    if (!secret || !signature) {
+      return true;
+    }
+
+    const expected = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
+    const actualBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expected);
+    return (
+      actualBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(actualBuffer, expectedBuffer)
+    );
+  }
+
+  async receive(payload: any) {
+    const entries = Array.isArray(payload?.entry) ? payload.entry : [];
+
+    for (const entry of entries) {
+      const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+      for (const change of changes) {
+        if (change?.field !== "messages") {
+          await this.logEvent(null, change?.field || "unknown", change?.value || change);
+          continue;
+        }
+        await this.handleMessagesChange(change.value);
+      }
+    }
+
+    return { received: true };
+  }
+
+  private async handleMessagesChange(value: any) {
+    const metadataPhoneNumberId = value?.metadata?.phone_number_id;
+    const wabaConfig = metadataPhoneNumberId
+      ? await this.prisma.wabaConfig.findFirst({
+          where: { phoneNumberId: metadataPhoneNumberId },
+        })
+      : null;
+    const organizationId = wabaConfig?.organizationId ?? null;
+
+    await this.logEvent(organizationId, "messages.change", value, value?.statuses?.[0]?.id);
+
+    const statuses = Array.isArray(value?.statuses) ? value.statuses : [];
+    for (const status of statuses) {
+      await this.handleStatus(organizationId, status);
+    }
+
+    const messages = Array.isArray(value?.messages) ? value.messages : [];
+    const contacts = Array.isArray(value?.contacts) ? value.contacts : [];
+    for (const message of messages) {
+      await this.handleIncomingMessage(organizationId, message, contacts[0], value, wabaConfig?.accessToken);
+    }
+
+    const templateEvent = value?.message_template_status_update;
+    if (templateEvent && organizationId) {
+      await this.handleTemplateStatus(organizationId, templateEvent);
+    }
+  }
+
+  private async handleStatus(organizationId: string | null, status: any) {
+    if (!organizationId || !status?.id) return;
+
+    const message = await this.prisma.message.findFirst({
+      where: { id: status.id, conversation: { organizationId } },
+    });
+
+    if (!message) return;
+
+    await this.prisma.message.update({
+      where: { id: message.id },
+      data: { status: String(status.status || "sent").toLowerCase() },
+    });
+
+    const conversation = await this.prisma.conversation.update({
+      where: { id: message.conversationId },
+      data: { updatedAt: new Date() },
+      include: {
+        contact: true,
+        labels: true,
+        notes: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 },
+        assignedTo: true,
+      },
+    });
+
+    await this.bumpBroadcastStats(organizationId, status);
+    this.inboxGateway.emitConversationUpdated(organizationId, conversation);
+    this.logger.log(`Updated message ${message.id} to ${status.status}`);
+    return conversation;
+  }
+
+  private async handleIncomingMessage(
+    organizationId: string | null,
+    message: any,
+    contactPayload: any,
+    value: any,
+    accessToken?: string
+  ) {
+    if (!organizationId) return;
+
+    const phone = contactPayload?.wa_id || message?.from;
+    if (!phone) return;
+
+    const contact = await this.prisma.contact.upsert({
+      where: { organizationId_phone: { organizationId, phone } },
+      update: {
+        name: contactPayload?.profile?.name || undefined,
+      },
+      create: {
+        organizationId,
+        phone,
+        name: contactPayload?.profile?.name || phone,
+        tags: [],
+        segments: [],
+      },
+    });
+
+    let conversation = await this.prisma.conversation.findFirst({
+      where: { organizationId, contactId: contact.id },
+    });
+
+    if (!conversation) {
+      const defaultGroup = await this.prisma.teamGroup.findFirst({
+        where: { organizationId },
+        orderBy: { createdAt: "asc" },
+      });
+      const assignee = defaultGroup
+        ? await this.teamService.getRoutingAssignee(organizationId, defaultGroup.id)
+        : null;
+
+      conversation = await this.prisma.conversation.create({
+        data: {
+          organizationId,
+          contactId: contact.id,
+          status: "OPEN",
+          assignedToId: assignee?.id,
+        },
+      });
+    }
+
+    const textBody =
+      message?.text?.body ||
+      message?.button?.text ||
+      message?.interactive?.button_reply?.title ||
+      message?.interactive?.list_reply?.title ||
+      message?.image?.caption ||
+      message?.video?.caption ||
+      message?.document?.caption ||
+      message?.document?.filename ||
+      "Media message";
+
+    const attachmentCreate = await this.buildAttachmentCreate(organizationId, message, accessToken);
+
+    await this.prisma.message.upsert({
+      where: { id: message.id },
+      update: {
+        content: textBody,
+        type: String(message?.type || "TEXT").toUpperCase(),
+        direction: "INBOUND",
+        status: "received",
+      },
+      create: {
+        id: message.id,
+        conversationId: conversation.id,
+        content: textBody,
+        type: String(message?.type || "TEXT").toUpperCase(),
+        direction: "INBOUND",
+        status: "received",
+        attachments: attachmentCreate,
+      },
+    });
+
+    await this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
+    });
+
+    const createdMessage = await this.prisma.message.findUnique({
+      where: { id: message.id },
+      include: { attachments: true },
+    });
+    const updatedConversation = await this.prisma.conversation.findUnique({
+      where: { id: conversation.id },
+      include: {
+        contact: true,
+        labels: true,
+        notes: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 },
+        assignedTo: true,
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    });
+    if (createdMessage) {
+      this.inboxGateway.emitMessageCreated(organizationId, createdMessage);
+    }
+    if (updatedConversation) {
+      this.inboxGateway.emitConversationUpdated(organizationId, updatedConversation);
+    }
+
+    await this.logEvent(organizationId, "messages.inbound", { message, contact: contactPayload, value }, message.id);
+  }
+
+  private async buildAttachmentCreate(organizationId: string | null, message: any, accessToken?: string) {
+    const attachmentSource = message?.image || message?.video || message?.audio || message?.document;
+    if (!attachmentSource) {
+      return undefined;
+    }
+
+    const downloaded = await this.downloadMetaMedia(organizationId, attachmentSource, accessToken, message?.type);
+
+    return {
+      create: [
+        {
+          url: downloaded?.url || attachmentSource.link || attachmentSource.id || "pending-media-fetch",
+          mimeType: downloaded?.mimeType || attachmentSource.mime_type || "application/octet-stream",
+          fileName: downloaded?.fileName || attachmentSource.filename || `${message?.type || "attachment"}`,
+        },
+      ],
+    };
+  }
+
+  private async downloadMetaMedia(
+    organizationId: string | null,
+    attachmentSource: any,
+    accessToken?: string,
+    type?: string
+  ) {
+    const mediaId = attachmentSource?.id;
+    if (!organizationId || !mediaId || !accessToken) return null;
+
+    try {
+      const graphBase = process.env.META_GRAPH_BASE || "https://graph.facebook.com/v19.0";
+      const metadataResponse = await fetch(`${graphBase}/${mediaId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!metadataResponse.ok) {
+        this.logger.warn(`Unable to fetch Meta media metadata ${mediaId}: ${await metadataResponse.text()}`);
+        return null;
+      }
+      const metadata = await metadataResponse.json();
+      if (!metadata?.url) return null;
+
+      const mediaResponse = await fetch(metadata.url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!mediaResponse.ok) {
+        this.logger.warn(`Unable to download Meta media ${mediaId}: ${await mediaResponse.text()}`);
+        return null;
+      }
+
+      const mimeType = metadata.mime_type || attachmentSource.mime_type || mediaResponse.headers.get("content-type") || "application/octet-stream";
+      const extension = this.extensionForMimeType(mimeType, type);
+      const safeOriginal = String(attachmentSource.filename || `${type || "media"}-${mediaId}`).replace(/[^a-zA-Z0-9._-]/g, "-");
+      const fileName = `${Date.now()}-${randomUUID()}-${safeOriginal}${safeOriginal.includes(".") ? "" : extension}`;
+      const uploadRoot = process.env.MEDIA_UPLOAD_DIR || "uploads";
+      await mkdir(uploadRoot, { recursive: true });
+      const buffer = Buffer.from(await mediaResponse.arrayBuffer());
+      await writeFile(join(uploadRoot, fileName), buffer);
+
+      const baseUrl = (
+        process.env.PUBLIC_WEBHOOK_BASE_URL ||
+        process.env.NGROK_URL ||
+        process.env.API_PUBLIC_URL ||
+        "http://localhost:4000"
+      ).replace(/\/$/, "");
+
+      return {
+        url: `${baseUrl}/uploads/${fileName}`,
+        mimeType,
+        fileName: attachmentSource.filename || fileName,
+      };
+    } catch (error: any) {
+      this.logger.warn(`Unable to store Meta media ${mediaId}: ${error?.message || error}`);
+      return null;
+    }
+  }
+
+  private extensionForMimeType(mimeType: string, type?: string) {
+    if (mimeType.includes("jpeg") || mimeType.includes("jpg")) return ".jpg";
+    if (mimeType.includes("png")) return ".png";
+    if (mimeType.includes("webp")) return ".webp";
+    if (mimeType.includes("gif")) return ".gif";
+    if (mimeType.includes("mp4")) return type === "audio" ? ".m4a" : ".mp4";
+    if (mimeType.includes("mpeg")) return ".mp3";
+    if (mimeType.includes("ogg")) return ".ogg";
+    if (mimeType.includes("pdf")) return ".pdf";
+    return ".bin";
+  }
+
+  private async handleTemplateStatus(organizationId: string, templateEvent: any) {
+    const metaTemplateId = templateEvent?.message_template_id || templateEvent?.event;
+    const event = String(templateEvent?.event || templateEvent?.status || "PENDING_REVIEW").toUpperCase();
+
+    if (!metaTemplateId) return;
+
+    const statusMap: Record<string, string> = {
+      APPROVED: "APPROVED",
+      REJECTED: "REJECTED",
+      PAUSED: "PAUSED",
+      DISABLED: "DISABLED",
+      PENDING: "SUBMITTED",
+    };
+
+    await this.prisma.template.updateMany({
+      where: { organizationId, metaTemplateId },
+      data: {
+        status: statusMap[event] || event,
+        rejectionReason: templateEvent?.reason || null,
+        qualityScore: templateEvent?.quality_score || undefined,
+      },
+    });
+
+    await this.logEvent(organizationId, "template.status", templateEvent, metaTemplateId);
+  }
+
+  private async bumpBroadcastStats(organizationId: string, status: any) {
+    const broadcastId = status?.biz_opaque_callback_data || status?.conversation?.id;
+    if (!broadcastId) return;
+
+    const broadcast = await this.prisma.broadcast.findFirst({
+      where: { id: broadcastId, organizationId },
+    });
+    if (!broadcast) return;
+
+    const currentStats = (broadcast.stats as Record<string, number> | null) || {
+      sent: 0,
+      delivered: 0,
+      read: 0,
+      failed: 0,
+    };
+
+    const nextStats = { ...currentStats };
+    const normalized = String(status.status || "").toLowerCase();
+    if (normalized === "delivered") nextStats.delivered += 1;
+    if (normalized === "read") nextStats.read += 1;
+    if (normalized === "failed") nextStats.failed += 1;
+
+    const recipient = status?.recipient_id
+      ? await this.prisma.broadcastRecipient.findFirst({
+          where: { broadcastId: broadcast.id, phone: status.recipient_id },
+        })
+      : null;
+
+    if (recipient) {
+      await this.prisma.broadcastRecipient.update({
+        where: { id: recipient.id },
+        data: {
+          status: String(status.status || recipient.status).toUpperCase(),
+          deliveredAt: normalized === "delivered" ? new Date() : recipient.deliveredAt,
+          readAt: normalized === "read" ? new Date() : recipient.readAt,
+          error: normalized === "failed" ? status?.errors?.[0]?.title || "DELIVERY_FAILED" : recipient.error,
+        },
+      });
+    }
+
+    await this.prisma.broadcast.update({
+      where: { id: broadcast.id },
+      data: { stats: nextStats },
+    });
+  }
+
+  private async logEvent(
+    organizationId: string | null,
+    eventType: string,
+    payload: any,
+    externalId?: string
+  ) {
+    await this.prisma.webhookEvent.create({
+      data: {
+        organizationId: organizationId || undefined,
+        eventType,
+        payload,
+        externalId,
+        status: "RECEIVED",
+        processedAt: new Date(),
+      },
+    });
+  }
+}

@@ -1,0 +1,430 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  AGENT
+  VIEWER
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  timezone  String?
+  language  String?
+  plan      String   @default("starter")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users      User[]
+  invites    Invite[]
+  templates  Template[]
+  wabaConfig WabaConfig?
+  broadcasts Broadcast[]
+  contacts   Contact[]
+  conversations Conversation[]
+  contactSegments ContactSegment[]
+  contactCustomFields ContactCustomField[]
+  conversationLabels ConversationLabel[]
+  conversationNotes ConversationNote[]
+  wallet Wallet?
+  transactions WalletTransaction[]
+  webhookEvents WebhookEvent[]
+  quickReplies QuickReply[]
+  apiKeys ApiKey[]
+  inboxViews InboxView[]
+  notificationSettings NotificationSettings?
+  teamGroups TeamGroup[]
+  broadcastRecipients BroadcastRecipient[]
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  role             UserRole
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  invitedBy        String?
+  acceptedInviteAt DateTime?
+  lastActiveAt     DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  refreshTokens    RefreshToken[]
+  passwordResets   PasswordReset[]
+  assignedConversations Conversation[] @relation("ConversationAssignee")
+  conversationNotes ConversationNote[]
+  inboxViews       InboxView[]
+  apiKeys          ApiKey[]
+  teamGroupMembers TeamGroupMember[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Invite {
+  id             String   @id @default(cuid())
+  email          String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  role           UserRole
+  token          String   @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime @default(now())
+  createdBy      String
+}
+
+model Broadcast {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  name           String
+  templateId     String
+  template       Template        @relation(fields: [templateId], references: [id])
+  status         BroadcastStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  audience       Json
+  templateVariables Json?
+  stats          Json?
+  createdAt      DateTime        @default(now())
+  createdBy      String
+  recipients     BroadcastRecipient[]
+}
+
+model BroadcastRecipient {
+  id             String          @id @default(cuid())
+  broadcastId    String
+  broadcast      Broadcast       @relation(fields: [broadcastId], references: [id])
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  contactId      String?
+  phone          String
+  status         String          @default("PENDING")
+  error          String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  repliedAt      DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@unique([broadcastId, phone])
+  @@index([broadcastId, status])
+  @@index([organizationId, phone])
+}
+
+model TeamGroup {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  name           String
+  description    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  members        TeamGroupMember[]
+
+  @@unique([organizationId, name])
+}
+
+model TeamGroupMember {
+  id          String    @id @default(cuid())
+  teamGroupId String
+  teamGroup   TeamGroup @relation(fields: [teamGroupId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@unique([teamGroupId, userId])
+}
+
+model Template {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  category       String
+  language       String
+  status         String
+  body           String
+  header         String?
+  footer         String?
+  buttons        Json?
+  metaTemplateId String?
+  qualityScore   String?
+  rejectionReason String?
+  analytics      Json?
+  createdAt      DateTime     @default(now())
+  createdBy      String
+  broadcasts     Broadcast[]
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  organizationId String?
+  actorId      String
+  action       String
+  resourceType String?
+  resourceId   String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}
+
+model WabaConfig {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  accessToken      String
+  phoneNumberId    String
+  wabaId           String
+  businessAccountId String
+  displayNumber    String?
+  businessName     String?
+  qualityRating    String?
+  status           String?
+  verifiedAt       DateTime?
+  webhookVerifyToken String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model WebhookEvent {
+  id             String       @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  eventType      String
+  payload        Json
+  status         String       @default("RECEIVED")
+  externalId     String?
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, eventType])
+  @@index([externalId])
+}
+
+model QuickReply {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  title          String
+  body           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, title])
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  name           String
+  prefix         String
+  secretHash     String
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+model InboxView {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  name           String
+  filters        Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, name])
+  @@index([organizationId, userId])
+}
+
+model NotificationSettings {
+  id                String       @id @default(cuid())
+  organizationId    String       @unique
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  emailAlerts       Boolean      @default(true)
+  browserAlerts     Boolean      @default(true)
+  dailyDigest       Boolean      @default(false)
+  escalationAlerts  Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model Contact {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  phone          String
+  email          String?
+  tags           String[]
+  segments       String[]
+  customFields   Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  conversations  Conversation[]
+
+  @@unique([organizationId, phone], name: "organizationId_phone")
+}
+
+model ContactSegment {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  color          String       @default("blue")
+  createdAt      DateTime     @default(now())
+}
+
+model ContactCustomField {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  key            String
+  label          String
+  type           String
+  options        Json?
+  createdAt      DateTime     @default(now())
+}
+
+model Conversation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  contactId      String
+  contact        Contact      @relation(fields: [contactId], references: [id])
+  status         String
+  assignedToId   String?
+  assignedTo     User?        @relation("ConversationAssignee", fields: [assignedToId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  messages       Message[]
+  labels         ConversationLabel[]
+  notes          ConversationNote[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  content        String
+  type           String
+  direction      String
+  status         String       @default("sent")
+  createdAt      DateTime     @default(now())
+  attachments    MessageAttachment[]
+}
+
+model ConversationLabel {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  name           String
+  color          String       @default("gray")
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, conversationId])
+}
+
+model ConversationNote {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  body           String
+  createdAt      DateTime     @default(now())
+}
+
+model MessageAttachment {
+  id         String   @id @default(cuid())
+  messageId  String
+  message    Message  @relation(fields: [messageId], references: [id])
+  url        String
+  mimeType   String
+  fileName   String
+  createdAt  DateTime @default(now())
+}
+
+model Wallet {
+  id                     String   @id @default(cuid())
+  organizationId         String   @unique
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  balance                Int      @default(0)
+  currency               String   @default("USD")
+  autoRechargeEnabled    Boolean  @default(false)
+  autoRechargeThreshold  Int      @default(0)
+  autoRechargeAmount     Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model WalletTransaction {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  type           String
+  amount         Int
+  balanceAfter   Int
+  currency       String   @default("USD")
+  reference      String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+}
+
+model CreditPack {
+  id        String   @id @default(cuid())
+  name      String
+  credits   Int
+  price     Int
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+}

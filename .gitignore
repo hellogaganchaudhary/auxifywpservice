@@ -1,0 +1,14 @@
+node_modules
+.next
+.next-dev
+dist
+coverage
+.env
+.env.*
+!.env.example
+pnpm-lock.yaml
+prisma/dev.db
+uploads
+apps/api/uploads
+*.log
+.DS_Store
