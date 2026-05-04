@@ -34,6 +34,9 @@ export default function DashboardPage() {
 
   const whatsappConnected = Boolean(wabaConfig?.wabaId && wabaConfig?.phoneNumberId && wabaConfig?.accessToken);
   const whatsappVerified = Boolean(wabaConfig?.verifiedAt || wabaConfig?.status === "VERIFIED");
+  const approvedTemplates = templates.filter((template) => template.status === "APPROVED");
+  const marketingTemplates = approvedTemplates.filter((template) => template.category === "MARKETING").length;
+  const utilityTemplates = approvedTemplates.filter((template) => template.category === "UTILITY").length;
   const openConversations = conversations.filter((item) => item.status === "OPEN").length;
   const pendingConversations = conversations.filter((item) => item.status === "PENDING").length;
   const latestConversation = conversations[0];
@@ -92,6 +95,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:items-stretch lg:justify-end">
+            <Link href="/broadcasts"><Button className="w-full rounded-full px-6">Create broadcast campaign</Button></Link>
             <Link href="/contacts"><Button className="w-full rounded-full px-6">Upload leads</Button></Link>
             <Link href="/templates"><Button variant="ghost" className="w-full rounded-full px-6">Templates homepage</Button></Link>
             <Link href="/templates/new"><Button variant="ghost" className="w-full rounded-full px-6">Create template</Button></Link>
@@ -113,6 +117,39 @@ export default function DashboardPage() {
             </div>
           </Card>
         ))}
+      </section>
+
+      <section className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-[linear-gradient(135deg,#022c22,#065f46_45%,#10b981)] p-6 text-white shadow-sm md:p-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div>
+            <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-50">
+              Broadcast command center
+            </div>
+            <h2 className="mt-4 text-3xl font-display md:text-4xl">Create marketing and utility WhatsApp campaigns</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/90">
+              Use approved Meta templates, select all contacts, tags, segments, or imported CSV contact IDs, then send now or schedule. This is the dashboard shortcut for bulk marketing and utility messages.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/broadcasts"><Button className="rounded-full bg-white px-6 text-emerald-700 hover:bg-emerald-50">Create new broadcast</Button></Link>
+              <Link href="/templates"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Check approved templates</Button></Link>
+              <Link href="/contacts"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Prepare audience</Button></Link>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-3xl font-display">{approvedTemplates.length}</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Approved templates</div>
+            </div>
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-3xl font-display">{marketingTemplates}</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Marketing ready</div>
+            </div>
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-3xl font-display">{utilityTemplates}</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Utility ready</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

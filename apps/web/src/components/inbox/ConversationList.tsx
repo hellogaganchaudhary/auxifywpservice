@@ -38,10 +38,10 @@ export function ConversationList() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 space-y-3">
+      <div className="shrink-0 space-y-3 border-b border-slate-200 bg-white pb-4">
         <div>
-          <div className="text-lg font-semibold text-slate-950">Inbox</div>
-          <div className="text-xs text-slate-500">Search, filter, and route WhatsApp conversations.</div>
+          <div className="text-xl font-semibold text-slate-950">Inbox conversations</div>
+          <div className="text-xs text-slate-500">Full-screen search, filters, saved views, and conversation list.</div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Create conversation</div>
@@ -68,7 +68,7 @@ export function ConversationList() {
           </div>
         </div>
         <Input
-          placeholder="Search by name, phone, or message"
+          placeholder="Search name, phone, or message"
           value={filters.search}
           onChange={(event) => setFilters({ search: event.target.value })}
         />

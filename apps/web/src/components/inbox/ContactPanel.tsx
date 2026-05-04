@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useInbox } from "@/hooks/useInbox";
 import { useTeam } from "@/hooks/useTeam";
 
-export function ContactPanel() {
+export function ContactPanel({ onClose }: { onClose?: () => void }) {
   const { conversations, activeConversation, activeConversationId, addLabel, addNote, updateConversation, updateContactProfile } = useInbox();
   const { members, groups } = useTeam();
   const [labelName, setLabelName] = useState("");
@@ -30,8 +30,17 @@ export function ContactPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
       <div className="shrink-0">
-        <div className="text-lg font-semibold text-slate-950">Contact profile</div>
-        <div className="text-xs text-slate-500">CRM details, assignment, labels, and internal notes.</div>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-lg font-semibold text-slate-950">Contact profile</div>
+            <div className="text-xs text-slate-500">CRM details, assignment, labels, and internal notes.</div>
+          </div>
+          {onClose ? (
+            <button type="button" className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-50" onClick={onClose}>
+              Close
+            </button>
+          ) : null}
+        </div>
       </div>
       {!active && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">Select a conversation</div>

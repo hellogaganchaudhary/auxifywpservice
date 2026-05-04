@@ -68,7 +68,7 @@ function MediaPreview({ attachment, outbound }: { attachment: Attachment; outbou
   );
 }
 
-export function MessageThread() {
+export function MessageThread({ onOpenContact }: { onOpenContact?: () => void }) {
   const { messages, activeConversationId, activeConversation } = useInbox();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -83,15 +83,16 @@ export function MessageThread() {
       {activeConversation && (
         <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
+            <button type="button" className="flex min-w-0 items-center gap-3 text-left" onClick={onOpenContact}>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
                 {(activeConversation.contact.name || activeConversation.contact.phone || "C").slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-slate-950">{activeConversation.contact.name}</div>
                 <div className="truncate text-xs text-slate-500">{activeConversation.contact.phone}</div>
+                <div className="truncate text-[10px] font-medium uppercase tracking-wide text-emerald-700">Click to open contact profile</div>
               </div>
-            </div>
+            </button>
             <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
               {activeConversation.status}
             </div>
