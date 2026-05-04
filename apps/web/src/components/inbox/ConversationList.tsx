@@ -37,10 +37,14 @@ export function ConversationList() {
   const statuses = useMemo(() => ["", "OPEN", "PENDING", "RESOLVED"], []);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="space-y-3">
-        <div className="rounded-md border border-border bg-bg-elevated p-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-text-muted">Create conversation</div>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 space-y-3">
+        <div>
+          <div className="text-lg font-semibold text-slate-950">Inbox</div>
+          <div className="text-xs text-slate-500">Search, filter, and route WhatsApp conversations.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Create conversation</div>
           <div className="mt-2 grid gap-2">
             <Input placeholder="WhatsApp number with country code" value={newContact.phone} onChange={(event) => setNewContact((prev) => ({ ...prev, phone: event.target.value }))} />
             <div className="grid grid-cols-2 gap-2">
@@ -93,7 +97,7 @@ export function ConversationList() {
             ))}
           </select>
         </div>
-        <div className="rounded-md border border-border bg-bg-elevated p-3">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs uppercase text-text-muted">Saved views</div>
             <button
@@ -159,7 +163,7 @@ export function ConversationList() {
           </div>
         </div>
       </div>
-      <div ref={parentRef} className="mt-4 min-h-[20rem] flex-1 overflow-y-auto lg:h-[calc(100vh-16rem)]">
+      <div ref={parentRef} className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
         {loading && (
           <div className="text-xs text-text-muted">Loading conversations...</div>
         )}
@@ -181,8 +185,8 @@ export function ConversationList() {
               >
                 <button
                   onClick={() => setActiveConversationId(conv.id)}
-                  className={`mb-2 w-full rounded-sm border border-border px-3 py-3 text-left text-sm hover:bg-bg-overlay ${
-                    activeConversationId === conv.id ? "bg-bg-elevated" : "bg-bg-surface"
+                  className={`mb-2 w-full rounded-2xl border px-3 py-3 text-left text-sm transition hover:border-emerald-200 hover:bg-emerald-50/60 ${
+                    activeConversationId === conv.id ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
