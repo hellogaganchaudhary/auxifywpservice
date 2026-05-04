@@ -125,16 +125,28 @@ export function MessageComposer() {
   };
 
   return (
-    <div className="border-t border-border bg-bg-surface p-3">
-      <div className="flex flex-col gap-3">
-        <input
-          className="h-10 rounded-sm border border-border bg-bg-surface px-3 text-sm"
-          placeholder="Write a message"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <div className="grid gap-2 lg:grid-cols-[160px_150px_1fr_160px_150px_auto]">
-          <label className="flex h-10 cursor-pointer items-center justify-center rounded-sm border border-border bg-bg-surface px-3 text-sm text-text-secondary hover:bg-bg-elevated">
+    <div className="shrink-0 border-t border-border bg-bg-surface p-3">
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            className="h-11 min-w-0 flex-1 rounded-sm border border-border bg-bg-surface px-3 text-sm"
+            placeholder="Write a message"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void onSend();
+              }
+            }}
+          />
+          <Button className="h-11 shrink-0 px-5" onClick={onSend} disabled={!activeConversationId || uploading}>
+            Send
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex h-9 cursor-pointer items-center justify-center rounded-sm border border-border bg-bg-surface px-3 text-xs text-text-secondary hover:bg-bg-elevated">
             {uploading ? "Uploading…" : "Upload media"}
             <input
               type="file"
@@ -148,12 +160,12 @@ export function MessageComposer() {
               }}
             />
           </label>
-          <Button type="button" variant="ghost" onClick={recording ? stopRecording : startRecording} disabled={uploading}>
+          <Button className="h-9 px-3 text-xs" type="button" variant="ghost" onClick={recording ? stopRecording : startRecording} disabled={uploading}>
             {recording ? "Stop recording" : "Record voice"}
           </Button>
           <input
-            className="h-10 rounded-sm border border-border bg-bg-surface px-3 text-sm"
-            placeholder="Public media URL (image, video, audio, document)"
+            className="h-9 min-w-[180px] flex-1 rounded-sm border border-border bg-bg-surface px-3 text-xs"
+            placeholder="Public media URL"
             value={attachmentUrl}
             onChange={(event) => {
               setAttachmentUrl(event.target.value);
@@ -161,13 +173,13 @@ export function MessageComposer() {
             }}
           />
           <input
-            className="h-10 rounded-sm border border-border bg-bg-surface px-3 text-sm"
+            className="h-9 w-32 rounded-sm border border-border bg-bg-surface px-3 text-xs"
             placeholder="File name"
             value={attachmentName}
             onChange={(event) => setAttachmentName(event.target.value)}
           />
           <select
-            className="h-10 rounded-sm border border-border bg-bg-surface px-3 text-sm"
+            className="h-9 w-32 rounded-sm border border-border bg-bg-surface px-3 text-xs"
             value={mediaType}
             onChange={(event) => setMediaType(event.target.value as typeof mediaType)}
           >
@@ -177,9 +189,6 @@ export function MessageComposer() {
             <option value="audio">Voice / audio</option>
             <option value="document">Document</option>
           </select>
-          <Button onClick={onSend} disabled={!activeConversationId}>
-            Send
-          </Button>
         </div>
         {attachmentUrl ? (
           <div className="flex flex-col gap-2 rounded-md border border-border bg-bg-elevated px-3 py-2 text-xs text-text-secondary sm:flex-row sm:items-center sm:justify-between">
