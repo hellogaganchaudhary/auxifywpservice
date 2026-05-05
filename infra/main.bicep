@@ -466,6 +466,7 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
               { name: 'NODE_ENV', value: 'production' }
               { name: 'DATABASE_URL', secretRef: 'database-url' }
               { name: 'REDIS_URL', secretRef: 'redis-url' }
+              { name: 'RUN_DB_SETUP', value: 'false' }
               { name: 'MEDIA_UPLOAD_DIR', value: mediaUploadDir }
               { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
               { name: 'API_PUBLIC_URL', value: publicApiUrl }
