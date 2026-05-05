@@ -6,7 +6,6 @@ coverage
 .env
 .env.*
 !.env.example
-pnpm-lock.yaml
 prisma/dev.db
 uploads
 apps/api/uploads
