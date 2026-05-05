@@ -82,7 +82,7 @@ export class AuthService {
         createdBy,
       },
     });
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const appUrl = process.env.APP_URL || process.env.WEB_APP_URL || process.env.FRONTEND_URL || "http://localhost:3000";
     await this.queues.emailQueue.add("send-invite", {
       to: payload.email,
       inviteUrl: `${appUrl}/accept-invite?token=${token}`,

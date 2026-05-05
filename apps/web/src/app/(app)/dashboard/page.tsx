@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
   const kpis = [
     {
-      label: "CRM leads",
+      label: "Contacts",
       value: contactsLoading ? "…" : stats.totalContacts.toLocaleString(),
       detail: `${stats.taggedContacts.toLocaleString()} tagged leads`,
       tone: "success" as const,
@@ -65,7 +65,7 @@ export default function DashboardPage() {
     {
       label: "Segments & tags",
       value: stats.totalTags.toLocaleString(),
-      detail: "CRM labels available",
+      detail: "Audience labels available",
       tone: "default" as const,
     },
   ];
@@ -84,14 +84,14 @@ export default function DashboardPage() {
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc_45%,#ecfdf5)] p-6 shadow-sm md:p-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.42fr] lg:items-end">
           <div>
-            <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
-              Organization admin panel
+            <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+              Auxify Engage command center
             </div>
             <h1 className="mt-5 max-w-3xl text-4xl font-display leading-tight text-slate-950 md:text-5xl">
               {organizationName}
             </h1>
             <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-              Complete CRM workspace for admin details, organization setup, lead uploads, WhatsApp profile, inbox conversations, templates, and sending readiness.
+              Premium workspace for organization setup, lead uploads, WhatsApp profile, inbox conversations, templates, broadcasts, and sending readiness.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:items-stretch lg:justify-end">
@@ -113,24 +113,24 @@ export default function DashboardPage() {
             </div>
             <div className="mt-5 text-4xl font-display text-slate-950">{kpi.value}</div>
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full w-3/4 rounded-full bg-emerald-500" />
+              <div className="h-full w-3/4 rounded-full bg-accent" />
             </div>
           </Card>
         ))}
       </section>
 
-      <section className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-[linear-gradient(135deg,#022c22,#065f46_45%,#10b981)] p-6 text-white shadow-sm md:p-8">
+      <section className="overflow-hidden rounded-[2rem] border border-blue-200 bg-[linear-gradient(135deg,#0b1b3a,#123d8a_48%,#1683ff)] p-6 text-white shadow-sm md:p-8">
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div>
-            <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-50">
+            <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-blue-50">
               Broadcast command center
             </div>
             <h2 className="mt-4 text-3xl font-display md:text-4xl">Create marketing and utility WhatsApp campaigns</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50/90">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-50/90">
               Use approved Meta templates, select all contacts, tags, segments, or imported CSV contact IDs, then send now or schedule. This is the dashboard shortcut for bulk marketing and utility messages.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/broadcasts"><Button className="rounded-full bg-white px-6 text-emerald-700 hover:bg-emerald-50">Create new broadcast</Button></Link>
+              <Link href="/broadcasts"><Button className="rounded-full bg-white px-6 text-accent hover:bg-blue-50">Create new broadcast</Button></Link>
               <Link href="/templates"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Check approved templates</Button></Link>
               <Link href="/contacts"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Prepare audience</Button></Link>
             </div>
@@ -138,15 +138,15 @@ export default function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
             <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
               <div className="text-3xl font-display">{approvedTemplates.length}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Approved templates</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Approved templates</div>
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
               <div className="text-3xl font-display">{marketingTemplates}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Marketing ready</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Marketing ready</div>
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
               <div className="text-3xl font-display">{utilityTemplates}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-emerald-50/80">Utility ready</div>
+              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Utility ready</div>
             </div>
           </div>
         </div>
@@ -157,9 +157,9 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-display text-slate-950">Organization and admin details</h2>
-              <p className="mt-1 text-sm text-slate-500">Visible workspace identity used across CRM, team, inbox, and campaigns.</p>
+              <p className="mt-1 text-sm text-slate-500">Visible workspace identity used across team, inbox, contacts, and campaigns.</p>
             </div>
-            <Link href="/settings/organization" className="text-sm font-medium text-emerald-700">Edit organization</Link>
+            <Link href="/settings/organization" className="text-sm font-medium text-accent">Edit organization</Link>
           </div>
           <div className="mt-6 grid gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -177,7 +177,7 @@ export default function DashboardPage() {
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Role</div>
-              <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">{user?.role || "ADMIN"}</div>
+              <div className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">{user?.role || "ADMIN"}</div>
             </div>
           </div>
         </Card>
@@ -213,13 +213,13 @@ export default function DashboardPage() {
 
       <section className="grid gap-6 lg:grid-cols-3">
         <Card className="rounded-[1.75rem] border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-display text-slate-950">CRM and lead upload</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">Add contacts manually, upload CSV leads, map CRM columns, create segments, and enrich custom fields.</p>
+          <h2 className="text-xl font-display text-slate-950">Contacts and lead upload</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">Add contacts manually, upload CSV leads, map audience columns, create segments, and enrich custom fields.</p>
           <div className="mt-5 flex items-center justify-between rounded-2xl bg-slate-50 p-4 text-sm">
             <span className="text-slate-500">CSV import</span>
             <Badge tone={importing ? "warning" : "success"}>{importing ? "Importing" : "Ready"}</Badge>
           </div>
-          <Link href="/contacts"><Button variant="ghost" className="mt-5 rounded-full">Open CRM leads</Button></Link>
+          <Link href="/contacts"><Button variant="ghost" className="mt-5 rounded-full">Open contacts</Button></Link>
         </Card>
 
         <Card className="rounded-[1.75rem] border-slate-200 bg-white p-6 shadow-sm">
@@ -245,7 +245,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-5 space-y-2">
             {templateSyncMessage ? (
-              <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800">{templateSyncMessage}</div>
+              <div className="rounded-2xl bg-blue-50 p-4 text-sm text-accent">{templateSyncMessage}</div>
             ) : null}
             {templatesError ? (
               <div className="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm text-error">
@@ -255,7 +255,7 @@ export default function DashboardPage() {
             ) : templatesLoading ? (
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Fetching templates…</div>
             ) : templates.length === 0 ? (
-              <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800">No templates yet. Create the first template from here.</div>
+              <div className="rounded-2xl bg-blue-50 p-4 text-sm text-accent">No templates yet. Create the first template from here.</div>
             ) : (
               templates.slice(0, 3).map((template) => (
                 <div key={template.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm">
@@ -294,7 +294,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="rounded-[1.75rem] border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-display text-slate-950">CRM readiness</h2>
+          <h2 className="text-xl font-display text-slate-950">Workspace readiness</h2>
           <div className="mt-5 space-y-2">
             {crmChecklist.map(([label, done, href]) => (
               <Link key={label} href={href} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm transition hover:bg-slate-100">

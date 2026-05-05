@@ -3,25 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-base: #0a0a0b;
-  --color-bg-surface: #111113;
-  --color-bg-elevated: #1a1a1e;
-  --color-bg-overlay: #222228;
-  --color-border: #2a2a30;
-  --color-border-strong: #3a3a44;
-  --color-accent: #25d366;
-  --color-accent-muted: rgba(37, 211, 102, 0.12);
-  --color-accent-hover: #1ebd5a;
-  --color-text-primary: #f2f2f5;
-  --color-text-secondary: #8a8a9a;
-  --color-text-muted: #56566a;
-  --color-success: #25d366;
+  --color-bg-base: #f7faff;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #f8fafc;
+  --color-bg-overlay: #eef4ff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-accent: #1683ff;
+  --color-accent-muted: rgba(22, 131, 255, 0.1);
+  --color-accent-hover: #0b6fe8;
+  --color-text-primary: #0b1b3a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-success: #0f9f6e;
   --color-warning: #f5a623;
-  --color-error: #ff4757;
-  --color-info: #3b9eff;
-  --color-template-tag: #7c5cfc;
-  --font-display: "Syne";
-  --font-body: "DM Sans";
+  --color-error: #dc2626;
+  --color-info: #1683ff;
+  --color-template-tag: #2454c6;
+  --font-display: "Inter";
+  --font-body: "Inter";
   --font-mono: "JetBrains Mono";
 }
 
@@ -34,7 +34,7 @@ body {
 }
 
 ::selection {
-  background: rgba(37, 211, 102, 0.35);
+  background: rgba(22, 131, 255, 0.18);
 }
 
 .container-page {
@@ -67,4 +67,9 @@ body {
 
 .card {
   @apply rounded-md border border-border bg-bg-surface;
+}
+
+.auxify-node-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(22, 131, 255, 0.16) 1px, transparent 0);
+  background-size: 28px 28px;
 }

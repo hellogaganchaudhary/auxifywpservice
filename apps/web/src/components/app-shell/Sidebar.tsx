@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import type { AuthUser } from "@/stores/auth.store";
+import { AuxifyLogo } from "@/components/marketing/MarketingShell";
 
 const navItems: Array<{ label: string; href: Route; roles?: AuthUser["role"][] }> = [
   { label: "Dashboard", href: "/dashboard" },
@@ -30,18 +31,12 @@ export function Sidebar({ currentPath = "/dashboard" }: { currentPath?: string }
   const { user } = useAuth();
   return (
     <aside className="border-b border-slate-200 bg-white/95 p-4 text-slate-950 shadow-sm backdrop-blur-xl lg:flex lg:h-full lg:w-72 lg:flex-col lg:border-b-0 lg:border-r">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 font-bold text-emerald-700 shadow-sm">W</div>
-        <div>
-          <div className="font-display text-lg leading-none">WhatsAppAI</div>
-          <div className="mt-1 text-xs text-slate-500">Organization CRM</div>
-        </div>
-      </div>
+      <AuxifyLogo />
       <div className="mt-5 hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:block">
         <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Signed in admin</div>
         <div className="mt-2 truncate text-sm font-semibold text-slate-900">{user?.name || "Workspace admin"}</div>
         <div className="mt-1 truncate text-xs text-slate-500">{user?.email || "Loading workspace"}</div>
-        <div className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">{user?.role || "Loading"}</div>
+        <div className="mt-3 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-accent">{user?.role || "Loading"}</div>
       </div>
       <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:mt-6 lg:flex-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {navItems
@@ -54,20 +49,20 @@ export function Sidebar({ currentPath = "/dashboard" }: { currentPath?: string }
               href={item.href}
               className={cn(
                 "group whitespace-nowrap rounded-2xl px-3.5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950",
-                active && "border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm"
+                active && "border border-blue-200 bg-blue-50 text-accent shadow-sm"
               )}
             >
               <span className="inline-flex items-center gap-3">
-                <span className={cn("h-1.5 w-1.5 rounded-full bg-slate-300 transition", active && "bg-emerald-600")} />
+                <span className={cn("h-1.5 w-1.5 rounded-full bg-slate-300 transition", active && "bg-accent")} />
                 {item.label}
               </span>
             </Link>
           );
         })}
       </nav>
-      <div className="mt-4 hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-sm text-slate-500 lg:mt-auto lg:block">
-        <div className="font-semibold text-slate-950">CRM ready</div>
-        <div className="mt-1 text-xs leading-5">Upload leads, connect WhatsApp, manage inbox conversations, and send campaigns.</div>
+      <div className="mt-4 hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4 text-sm text-slate-500 lg:mt-auto lg:block">
+        <div className="font-semibold text-slate-950">Auxify Engage ready</div>
+        <div className="mt-1 text-xs leading-5">Connect tenant WhatsApp credentials, manage inbox conversations, and send campaigns.</div>
       </div>
     </aside>
   );

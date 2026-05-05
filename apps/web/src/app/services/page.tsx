@@ -1,30 +1,30 @@
+import Link from "next/link";
 import { MarketingFooter, MarketingNav, PageHero } from "@/components/marketing/MarketingShell";
+import { Button } from "@/components/ui/button";
 
-const services = [
-  { title: "Customer care command center", body: "Route every inbound WhatsApp conversation to the right agent, team, or saved operational view." },
-  { title: "Growth campaign execution", body: "Run targeted, template-approved broadcasts with recipient-level visibility and exportable performance." },
-  { title: "Template governance office", body: "Centralize Meta template creation, review, sync, status tracking, and quality improvement workflows." },
-  { title: "Enterprise communications module", body: "Embed WhatsAppAI into a broader unified communications stack with clean tenant boundaries and APIs." },
-  { title: "Operations analytics", body: "Monitor support load, campaign outcomes, read rates, team performance, and wallet consumption." },
-  { title: "Security and administration", body: "Control access with roles, audit actions, rotate API keys, and manage organization settings." },
+const useCases = [
+  ["Fintech & Banking", ["OTP & transaction alerts", "Loan application updates", "Secure document sharing", "KYC verification flows"]],
+  ["E-commerce & D2C", ["Order confirmations and delivery updates", "Abandoned cart recovery", "Interactive product recommendations", "Post-purchase feedback"]],
+  ["Healthcare", ["Appointment reminders", "Lab report delivery", "Prescription reminders", "Patient follow-up automation"]],
+  ["Logistics & Delivery", ["Real-time shipment tracking", "Delivery confirmation with proof", "Driver-customer communication", "Exception handling"]],
+  ["EdTech & Education", ["Course enrollment confirmations", "Live class reminders", "Assignment workflows", "Parent-teacher communication"]],
 ];
 
 export default function ServicesPage() {
   return (
     <main className="min-h-screen bg-bg-base text-text-primary">
       <MarketingNav />
-      <PageHero
-        eyebrow="Solutions"
-        title="Designed for enterprise service, sales, and operations teams."
-        description="Each workspace is built around the real workflows that make WhatsApp Business critical: care, campaigns, compliance, billing, and scale."
-      />
+      <PageHero eyebrow="Use cases" title="Auxify Engage powers WhatsApp communication across industries." description="From financial services to logistics, Auxify gives teams a clean, compliant way to operate customer communication at scale." />
       <section className="container-page py-16">
-        <div className="grid gap-4 md:grid-cols-2">
-          {services.map((service) => (
-            <div key={service.title} className="rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.02] p-7">
-              <h2 className="text-2xl font-display">{service.title}</h2>
-              <p className="mt-3 leading-7 text-text-secondary">{service.body}</p>
-            </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {useCases.map(([title, items]) => (
+            <article key={title as string} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold tracking-[-0.02em] text-[#0b1b3a]">{title as string}</h2>
+              <ul className="mt-5 space-y-3 text-sm text-slate-600">
+                {(items as string[]).map((item) => <li key={item} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />{item}</li>)}
+              </ul>
+              <Link href="/contact"><Button variant="ghost" className="mt-6 rounded-full">Book a demo</Button></Link>
+            </article>
           ))}
         </div>
       </section>

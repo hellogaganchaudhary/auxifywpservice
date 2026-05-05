@@ -1,102 +1,79 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MarketingFooter, MarketingNav } from "@/components/marketing/MarketingShell";
+import { CtaBand, FeatureCard, SectionHeader } from "@/components/marketing/Sections";
 
-const operatingMetrics = [
-  { label: "Message delivery SLA", value: "99.9%" },
-  { label: "Average first response", value: "42s" },
-  { label: "Teams orchestrated", value: "24+" },
-  { label: "Governed conversations", value: "1.8M" },
+const capabilities = [
+  ["Complete Two-Way Messaging", "Text, audio, video, documents, locations, interactive messages, and buttons — all handled beautifully."],
+  ["Intelligent Team Inbox", "Unified inbox with search, filters, assignment, internal notes, and SLA tracking."],
+  ["Template Studio", "Create, preview, and sync professional templates with variables, media headers, and quick replies."],
+  ["Broadcast & Campaign Engine", "Launch marketing and utility broadcasts with audience segmentation, scheduling, and real-time performance tracking."],
+  ["Deep Analytics", "Message-level, contact-level, and campaign-level insights with exportable reports."],
+  ["Enterprise Security", "Role-based access, full audit logs, encryption, and compliance-ready infrastructure."],
 ];
 
-const modules = [
-  {
-    title: "Command inbox",
-    body: "Real-time assignment, labels, notes, saved views, media context, and team routing in one operational console.",
-  },
-  {
-    title: "Broadcast control tower",
-    body: "Audience targeting, template governance, delivery analytics, recipient drilldowns, and export-ready campaign evidence.",
-  },
-  {
-    title: "Template operations",
-    body: "Create, submit, sync, monitor, and optimize Meta templates with approval status and performance analytics.",
-  },
-  {
-    title: "Enterprise administration",
-    body: "RBAC, API keys, audit logs, billing wallets, notification controls, and secure organization-level isolation.",
-  },
-];
-
-const proof = ["Unified Communications ready", "Meta API aligned", "Role based access", "Webhook event pipeline"];
+const trust = ["150+ companies", "12M+ messages delivered", "99.97% uptime", "SOC2 & DPDP aligned"];
+const reasons = ["Sub-second delivery at scale", "Clean, modern interface your team will love", "Transparent usage-based pricing", "Dedicated onboarding and priority support", "Full API access for custom workflows"];
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-bg-base text-text-primary">
       <MarketingNav />
 
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(37,211,102,0.22),transparent_28%),radial-gradient(circle_at_78%_10%,rgba(124,92,252,0.18),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_42%)]" />
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 auxify-node-grid opacity-60" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(22,131,255,0.16),transparent_30%),linear-gradient(180deg,#ffffff,rgba(247,250,255,0.92))]" />
         <div className="container-page relative grid min-h-[calc(100vh-4rem)] items-center gap-14 py-20 lg:grid-cols-[1fr_0.86fr]">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.22em] text-text-secondary">
-              <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_18px_rgba(37,211,102,0.9)]" />
-              Premium WhatsApp Business Suite
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-accent">
+              Auxify × WhatsApp
             </div>
-            <h1 className="mt-8 max-w-5xl text-5xl font-display leading-[0.95] tracking-tight md:text-7xl">
-              Enterprise messaging, designed for global support and growth teams.
+            <h1 className="mt-8 max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.06em] text-[#0b1b3a] md:text-7xl">
+              Enterprise WhatsApp. Built for scale. Designed for clarity.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-text-secondary">
-              WhatsAppAI brings inbox operations, compliant broadcasts, Meta templates, analytics, billing, and administration into one premium operating system for business communication.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              Auxify Engage is the complete WhatsApp Business platform trusted by fast-growing companies. Full two-way messaging, rich media, interactive messages, intelligent broadcasts, and real-time analytics — all in one elegant, enterprise-grade workspace.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href="/login">
-                <Button className="h-12 rounded-full px-7 text-sm">Login to console</Button>
-              </Link>
-              <Link href="/accept-invite">
-                <Button variant="ghost" className="h-12 rounded-full px-7 text-sm">Create account / accept invite</Button>
-              </Link>
+              <Link href="/accept-invite"><Button className="h-12 rounded-full px-7">Start 14-day Enterprise Trial</Button></Link>
+              <Link href="/contact"><Button variant="ghost" className="h-12 rounded-full px-7">Watch 90-second demo</Button></Link>
             </div>
             <div className="mt-9 flex flex-wrap gap-3">
-              {proof.map((item) => (
-                <span key={item} className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-text-secondary">
+              {trust.map((item) => (
+                <span key={item} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
                   {item}
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-black/30 backdrop-blur">
-            <div className="rounded-[1.5rem] border border-white/10 bg-[#08110d] p-5">
-              <div className="flex items-center justify-between border-b border-white/10 pb-5">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-2xl shadow-blue-950/10">
+            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-5">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.24em] text-text-muted">Live command center</div>
-                  <div className="mt-2 text-2xl font-display">Priority Inbox</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Auxify Engage</div>
+                  <div className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#0b1b3a]">Priority Inbox</div>
                 </div>
-                <span className="rounded-full bg-accent-muted px-3 py-1 text-xs text-accent">Online</span>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-accent">Live</span>
               </div>
               <div className="mt-5 space-y-3">
-                {[
-                  ["VIP onboarding", "Assigned to Aisha", "2m"],
-                  ["Template approval", "Manager review", "8m"],
-                  ["Broadcast replies", "Auto routed", "14m"],
-                ].map(([title, sub, time]) => (
-                  <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                {[["Broadcast replies", "Auto-routed to growth team", "2m"], ["KYC document received", "Assigned to support", "8m"], ["Template campaign", "7,248 delivered", "14m"]].map(([title, sub, time]) => (
+                  <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-medium">{title}</div>
-                        <div className="mt-1 text-sm text-text-secondary">{sub}</div>
+                        <div className="font-bold text-[#0b1b3a]">{title}</div>
+                        <div className="mt-1 text-sm text-slate-500">{sub}</div>
                       </div>
-                      <div className="text-xs text-text-muted">{time}</div>
+                      <div className="text-xs text-slate-400">{time}</div>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                {operatingMetrics.slice(0, 4).map((metric) => (
-                  <div key={metric.label} className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4">
-                    <div className="text-2xl font-display">{metric.value}</div>
-                    <div className="mt-1 text-xs text-text-muted">{metric.label}</div>
+                {[["99.97%", "Uptime"], ["12M+", "Messages"], ["47%", "Reply lift"], ["<1s", "Event sync"]].map(([value, label]) => (
+                  <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="text-2xl font-black text-[#0b1b3a]">{value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{label}</div>
                   </div>
                 ))}
               </div>
@@ -105,50 +82,65 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.02]">
-        <div className="container-page grid gap-4 py-8 sm:grid-cols-2 lg:grid-cols-4">
-          {operatingMetrics.map((metric) => (
-            <div key={metric.label} className="rounded-2xl border border-white/10 bg-bg-surface/70 p-5">
-              <div className="text-3xl font-display">{metric.value}</div>
-              <div className="mt-2 text-sm text-text-secondary">{metric.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="container-page py-20">
-        <div className="max-w-2xl">
-          <div className="text-sm uppercase tracking-[0.24em] text-accent">Platform modules</div>
-          <h2 className="mt-4 text-4xl font-display md:text-5xl">Everything an enterprise WhatsApp team needs.</h2>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {modules.map((module, index) => (
-            <div key={module.title} className="group rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-7 transition hover:-translate-y-1 hover:border-accent/30 hover:bg-white/[0.055]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-accent/20 bg-accent-muted text-sm text-accent">
-                0{index + 1}
-              </div>
-              <h3 className="mt-6 text-2xl font-display">{module.title}</h3>
-              <p className="mt-3 leading-7 text-text-secondary">{module.body}</p>
-            </div>
-          ))}
+        <div className="grid gap-10 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.24em] text-accent">The problem</div>
+            <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] text-[#0b1b3a]">WhatsApp is powerful. Most platforms make it painful.</h2>
+          </div>
+          <p className="text-lg leading-8 text-slate-600">
+            You’re stuck with clunky interfaces, broken media handling, scattered analytics, and constant compliance worries. Your team loses conversations. Campaigns underperform. Scaling feels risky. There’s a better way.
+          </p>
         </div>
       </section>
 
-      <section className="container-page pb-20">
-        <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(37,211,102,0.14),rgba(255,255,255,0.04)_44%,rgba(124,92,252,0.12))] p-8 md:p-12">
-          <div className="grid items-end gap-8 lg:grid-cols-[1fr_0.7fr]">
-            <div>
-              <div className="text-sm uppercase tracking-[0.24em] text-accent">Ready for rollout</div>
-              <h2 className="mt-4 max-w-3xl text-4xl font-display md:text-5xl">Launch a premium customer messaging workspace without rebuilding core infrastructure.</h2>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-              <Link href="/login"><Button className="h-12 rounded-full px-7">Sign in</Button></Link>
-              <Link href="/features"><Button variant="ghost" className="h-12 rounded-full px-7">Explore platform</Button></Link>
-            </div>
+      <section className="border-y border-slate-200 bg-white py-20">
+        <div className="container-page">
+          <SectionHeader eyebrow="The solution" title="Auxify Engage — WhatsApp built for enterprises." description="Send every message type, collaborate through a professional team inbox, sync templates, connect tenant-specific WhatsApp credentials, and measure every broadcast with compliance-ready auditability." />
+          <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {capabilities.map(([title, body], index) => <FeatureCard key={title} title={title} body={body} index={index} />)}
           </div>
         </div>
       </section>
 
+      <section className="container-page py-20">
+        <div className="grid gap-12 lg:grid-cols-2">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-[#0b1b3a]">Why teams choose Auxify Engage</h2>
+            <ul className="mt-6 space-y-4 text-slate-600">
+              {reasons.map((reason) => <li key={reason} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />{reason}</li>)}
+            </ul>
+          </div>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-3xl font-black tracking-[-0.04em] text-[#0b1b3a]">How it works</h2>
+            <div className="mt-6 space-y-5">
+              {["Connect your WhatsApp Business account in under 3 minutes", "Orchestrate conversations through the intelligent inbox", "Scale & optimize with powerful broadcasts and live analytics"].map((step, index) => (
+                <div key={step} className="flex gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-accent">{index + 1}</div>
+                  <div className="font-medium text-slate-700">{step}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-accent">From first message to millions — in minutes.</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20">
+        <div className="container-page">
+          <SectionHeader eyebrow="Social proof" title="Trusted by high-growth teams that cannot afford messaging chaos." />
+          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            {["Auxify Engage gave us the cleanest WhatsApp inbox and the most accurate broadcast analytics we’ve ever seen. Response rate improved by 47% in the first month.", "We send 80,000+ messages every week. Auxify is the only platform that has never failed us on delivery or compliance."].map((quote, index) => (
+              <blockquote key={quote} className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 text-lg leading-8 text-[#0b1b3a]">
+                “{quote}”
+                <footer className="mt-5 text-sm font-semibold text-slate-500">— {index === 0 ? "Head of Growth, Leading Indian D2C Brand" : "CTO, Series B Fintech"}</footer>
+              </blockquote>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <CtaBand title="Ready to run WhatsApp like a true enterprise?" description="Join 150+ companies using Auxify Engage to deliver exceptional customer experiences at scale. No credit card required • Full access • Cancel anytime." />
       <MarketingFooter />
     </main>
   );
