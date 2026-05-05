@@ -134,18 +134,28 @@ jobs:
               superAdminName="${{ secrets.SUPER_ADMIN_NAME }}"
 
       - name: Sync production database schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          az containerapp exec \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$API_APP_NAME" \
-            --command "node node_modules/prisma/build/index.js db push --schema prisma/schema.prisma --skip-generate"
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            ${{ steps.acr.outputs.login_server }}/api:${{ github.sha }} \
+            node node_modules/prisma/build/index.js db push --schema prisma/schema.prisma --skip-generate
 
       - name: Seed production super-admin
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          SUPER_ADMIN_NAME: ${{ secrets.SUPER_ADMIN_NAME }}
         run: |
-          az containerapp exec \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$API_APP_NAME" \
-            --command "node apps/api/seed-super-admin.mjs"
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e SUPER_ADMIN_EMAIL="$SUPER_ADMIN_EMAIL" \
+            -e SUPER_ADMIN_PASSWORD="$SUPER_ADMIN_PASSWORD" \
+            -e SUPER_ADMIN_NAME="$SUPER_ADMIN_NAME" \
+            ${{ steps.acr.outputs.login_server }}/api:${{ github.sha }} \
+            node apps/api/seed-super-admin.mjs
 
       - name: Show live URLs
         run: |
