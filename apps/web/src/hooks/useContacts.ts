@@ -122,16 +122,6 @@ export function useContacts() {
     return data;
   }, [loadContactDetail, loadContacts, query]);
 
-  const deleteContact = useCallback(async (contactId: string) => {
-    await api.delete(`/contacts/${contactId}`);
-    await loadContacts(query);
-    if (activeContactId === contactId) {
-      setActiveContact(null);
-      setConversations([]);
-      setActiveContactId(null);
-    }
-  }, [activeContactId, loadContacts, query]);
-
   const importCsv = useCallback(async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -235,7 +225,6 @@ export function useContacts() {
     loadContacts,
     createContact,
     updateContact,
-    deleteContact,
     importCsv,
     importCsvMapped,
     previewCsv,

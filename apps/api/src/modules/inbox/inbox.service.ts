@@ -256,7 +256,7 @@ export class InboxService {
     });
 
     try {
-      await this.sendWhatsAppMessage({
+      const response = await this.sendWhatsAppMessage({
         accessToken: wabaConfig.accessToken,
         phoneNumberId: wabaConfig.phoneNumberId,
         to: contactPhone,
@@ -264,9 +264,13 @@ export class InboxService {
         mediaType: payload.mediaType,
         attachment: payload.attachments?.[0],
       });
+      const externalId = response?.messages?.[0]?.id;
       await this.prisma.message.update({
         where: { id: message.id },
-        data: { status: "sent" },
+        data: {
+          status: "sent",
+          ...(externalId ? { externalId } : {}),
+        },
       });
     } catch (error: any) {
       await this.prisma.message.update({

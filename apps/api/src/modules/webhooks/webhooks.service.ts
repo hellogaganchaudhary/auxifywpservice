@@ -39,8 +39,18 @@ export class WebhooksService {
 
   verifySignature(signature: string | undefined, rawBody: Buffer) {
     const secret = process.env.META_APP_SECRET;
-    if (!secret || !signature) {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (!secret) {
+      if (isProduction) {
+        this.logger.error("META_APP_SECRET is missing in production. Webhook validation will fail.");
+        return false;
+      }
       return true;
+    }
+
+    if (!signature) {
+      return !isProduction;
     }
 
     const expected = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
@@ -58,11 +68,17 @@ export class WebhooksService {
     for (const entry of entries) {
       const changes = Array.isArray(entry?.changes) ? entry.changes : [];
       for (const change of changes) {
-        if (change?.field !== "messages") {
-          await this.logEvent(null, change?.field || "unknown", change?.value || change);
-          continue;
+        try {
+          if (change?.field !== "messages") {
+            await this.logEvent(null, change?.field || "unknown", change?.value || change);
+            continue;
+          }
+          await this.handleMessagesChange(change.value);
+        } catch (error: any) {
+          this.logger.error(`Error processing webhook change: ${error?.message || error}`, error?.stack);
+          // We don't rethrow here to allow other changes in the batch to be processed
+          // and to avoid Meta retrying the same failing payload indefinitely
         }
-        await this.handleMessagesChange(change.value);
       }
     }
 
@@ -71,29 +87,38 @@ export class WebhooksService {
 
   private async handleMessagesChange(value: any) {
     const metadataPhoneNumberId = value?.metadata?.phone_number_id;
-    const wabaConfig = metadataPhoneNumberId
-      ? await this.prisma.wabaConfig.findFirst({
-          where: { phoneNumberId: metadataPhoneNumberId },
-        })
-      : null;
+    const metadataDisplayNumber = String(value?.metadata?.display_phone_number || "").replace(/[^0-9]/g, "");
+    const wabaConfig = await this.resolveWabaConfig(metadataPhoneNumberId, metadataDisplayNumber);
     const organizationId = wabaConfig?.organizationId ?? null;
 
-    await this.logEvent(organizationId, "messages.change", value, value?.statuses?.[0]?.id);
+    await this.logEvent(organizationId, "messages.change", value, value?.statuses?.[0]?.id || value?.messages?.[0]?.id);
 
     const statuses = Array.isArray(value?.statuses) ? value.statuses : [];
     for (const status of statuses) {
-      await this.handleStatus(organizationId, status);
+      try {
+        await this.handleStatus(organizationId, status);
+      } catch (error: any) {
+        this.logger.error(`Error handling status ${status?.id}: ${error?.message}`);
+      }
     }
 
     const messages = Array.isArray(value?.messages) ? value.messages : [];
     const contacts = Array.isArray(value?.contacts) ? value.contacts : [];
     for (const message of messages) {
-      await this.handleIncomingMessage(organizationId, message, contacts[0], value, wabaConfig?.accessToken);
+      try {
+        await this.handleIncomingMessage(organizationId, message, contacts[0], value, wabaConfig?.accessToken);
+      } catch (error: any) {
+        this.logger.error(`Error handling message ${message?.id}: ${error?.message}`);
+      }
     }
 
     const templateEvent = value?.message_template_status_update;
     if (templateEvent && organizationId) {
-      await this.handleTemplateStatus(organizationId, templateEvent);
+      try {
+        await this.handleTemplateStatus(organizationId, templateEvent);
+      } catch (error: any) {
+        this.logger.error(`Error handling template status update: ${error?.message}`);
+      }
     }
   }
 
@@ -101,7 +126,10 @@ export class WebhooksService {
     if (!organizationId || !status?.id) return;
 
     const message = await this.prisma.message.findFirst({
-      where: { id: status.id, conversation: { organizationId } },
+      where: {
+        OR: [{ id: status.id }, { externalId: status.id }],
+        conversation: { organizationId },
+      },
     });
 
     await this.bumpBroadcastStats(organizationId, status);
@@ -110,7 +138,10 @@ export class WebhooksService {
 
     await this.prisma.message.update({
       where: { id: message.id },
-      data: { status: String(status.status || "sent").toLowerCase() },
+      data: {
+        status: String(status.status || "sent").toLowerCase(),
+        pricing: status.pricing ? (status.pricing as any) : undefined,
+      },
     });
 
     const conversation = await this.prisma.conversation.update({
@@ -145,6 +176,7 @@ export class WebhooksService {
       where: { organizationId_phone: { organizationId, phone } },
       update: {
         name: contactPayload?.profile?.name || undefined,
+        deletedAt: null,
       },
       create: {
         organizationId,
@@ -187,6 +219,7 @@ export class WebhooksService {
       message?.video?.caption ||
       message?.document?.caption ||
       message?.document?.filename ||
+      (message?.sticker ? "Sticker" : undefined) ||
       "Media message";
 
     const attachmentCreate = await this.buildAttachmentCreate(organizationId, message, accessToken);
@@ -198,9 +231,12 @@ export class WebhooksService {
         type: String(message?.type || "TEXT").toUpperCase(),
         direction: "INBOUND",
         status: "received",
+        externalId: message.id,
+        ...(attachmentCreate ? { attachments: attachmentCreate } : {}),
       },
       create: {
         id: message.id,
+        externalId: message.id,
         conversationId: conversation.id,
         content: textBody,
         type: String(message?.type || "TEXT").toUpperCase(),
@@ -242,7 +278,7 @@ export class WebhooksService {
   }
 
   private async buildAttachmentCreate(organizationId: string | null, message: any, accessToken?: string) {
-    const attachmentSource = message?.image || message?.video || message?.audio || message?.document;
+    const attachmentSource = message?.image || message?.video || message?.audio || message?.document || message?.sticker;
     if (!attachmentSource) {
       return undefined;
     }
@@ -258,6 +294,35 @@ export class WebhooksService {
         },
       ],
     };
+  }
+
+  private async resolveWabaConfig(phoneNumberId?: string, displayNumber?: string) {
+    if (phoneNumberId) {
+      const exact = await this.prisma.wabaConfig.findFirst({
+        where: { phoneNumberId },
+      });
+      if (exact) return exact;
+    }
+
+    if (displayNumber) {
+      const configs = await this.prisma.wabaConfig.findMany();
+      const byDisplayNumber = configs.find((config) => {
+        const configuredDisplay = String(config.displayNumber || "").replace(/[^0-9]/g, "");
+        const configuredPhoneId = String(config.phoneNumberId || "").replace(/[^0-9]/g, "");
+        return configuredDisplay === displayNumber || configuredPhoneId === displayNumber;
+      });
+      if (byDisplayNumber) return byDisplayNumber;
+    }
+
+    const fallback = await this.prisma.wabaConfig.findFirst({
+      orderBy: { updatedAt: "desc" },
+    });
+    if (fallback) {
+      this.logger.warn(
+        `Unable to match webhook phone_number_id=${phoneNumberId || "unknown"}. Falling back to latest WABA config for organization ${fallback.organizationId}.`
+      );
+    }
+    return fallback;
   }
 
   private async downloadMetaMedia(
@@ -379,6 +444,7 @@ export class WebhooksService {
           deliveredAt: ["delivered", "read"].includes(normalized) ? new Date() : recipient.deliveredAt,
           readAt: normalized === "read" ? new Date() : recipient.readAt,
           error: normalized === "failed" ? this.formatWebhookError(status) : recipient.error,
+          pricing: status.pricing ? (status.pricing as any) : undefined,
         },
       });
     }

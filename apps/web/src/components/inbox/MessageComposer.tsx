@@ -103,6 +103,26 @@ export function MessageComposer() {
     setRecording(false);
   };
 
+  const sendLocation = async () => {
+    if (!activeConversationId) return;
+    setError(null);
+    if (!navigator.geolocation) {
+      setError("Location sharing is not supported in this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          await sendMessage(activeConversationId, `Location: https://maps.google.com/?q=${latitude},${longitude}`, undefined, "text");
+        } catch (sendError: any) {
+          setError(sendError?.response?.data?.message || "Location message failed.");
+        }
+      },
+      () => setError("Location permission is required to share location.")
+    );
+  };
+
   const onSend = async () => {
     if (!activeConversationId) return;
     setError(null);
@@ -133,75 +153,12 @@ export function MessageComposer() {
   };
 
   return (
-    <div className="shrink-0 border-t border-border bg-bg-surface p-3">
+    <div className="shrink-0 border-t border-slate-200 bg-[#f0f2f5] p-3">
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <input
-            className="h-11 min-w-0 flex-1 rounded-sm border border-border bg-bg-surface px-3 text-sm"
-            placeholder="Write a message"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void onSend();
-              }
-            }}
-          />
-          <Button className="h-11 shrink-0 px-5" onClick={onSend} disabled={!activeConversationId || uploading}>
-            Send
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex h-9 cursor-pointer items-center justify-center rounded-sm border border-border bg-bg-surface px-3 text-xs text-text-secondary hover:bg-bg-elevated">
-            {uploading ? "Uploading…" : "Upload media"}
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-              disabled={uploading}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) uploadFile(file);
-                event.currentTarget.value = "";
-              }}
-            />
-          </label>
-          <Button className="h-9 px-3 text-xs" type="button" variant="ghost" onClick={recording ? stopRecording : startRecording} disabled={uploading}>
-            {recording ? "Stop recording" : "Record voice"}
-          </Button>
-          <input
-            className="h-9 min-w-[180px] flex-1 rounded-sm border border-border bg-bg-surface px-3 text-xs"
-            placeholder="Public media URL"
-            value={attachmentUrl}
-            onChange={(event) => {
-              setAttachmentUrl(event.target.value);
-              setAttachmentMimeType("");
-            }}
-          />
-          <input
-            className="h-9 w-32 rounded-sm border border-border bg-bg-surface px-3 text-xs"
-            placeholder="File name"
-            value={attachmentName}
-            onChange={(event) => setAttachmentName(event.target.value)}
-          />
-          <select
-            className="h-9 w-32 rounded-sm border border-border bg-bg-surface px-3 text-xs"
-            value={mediaType}
-            onChange={(event) => setMediaType(event.target.value as typeof mediaType)}
-          >
-            <option value="text">Text</option>
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-            <option value="audio">Voice / audio</option>
-            <option value="document">Document</option>
-          </select>
-        </div>
         {attachmentUrl ? (
-          <div className="flex flex-col gap-2 rounded-md border border-border bg-bg-elevated px-3 py-2 text-xs text-text-secondary sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 truncate">
-              Ready to send: <span className="font-medium text-text-primary">{attachmentName || "media"}</span> · {attachmentMimeType || defaultMimeForType(mediaType)}
+              Ready: <span className="font-medium text-slate-950">{attachmentName || "media"}</span>
             </div>
             <Button
               type="button"
@@ -217,8 +174,43 @@ export function MessageComposer() {
             </Button>
           </div>
         ) : null}
-        <div className="text-[11px] text-text-muted">
-          Upload image, MP4 video, document, or record voice directly. MOV videos and recorded audio are converted to WhatsApp-safe formats before delivery.
+
+        <div className="flex items-center gap-2">
+          <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-lg text-slate-600 shadow-sm hover:bg-slate-50" title="Attach media, sticker, GIF, video, audio, or document">
+            {uploading ? "…" : "＋"}
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*,image/gif,image/webp,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+              disabled={uploading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) uploadFile(file);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <Button className="h-11 w-11 shrink-0 rounded-full px-0" type="button" variant="ghost" onClick={sendLocation} disabled={!activeConversationId || uploading}>
+            📍
+          </Button>
+          <Button className="h-11 w-11 shrink-0 rounded-full px-0" type="button" variant="ghost" onClick={recording ? stopRecording : startRecording} disabled={uploading}>
+            {recording ? "■" : "🎙"}
+          </Button>
+          <input
+            className="h-11 min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-300"
+            placeholder="Type a message"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void onSend();
+              }
+            }}
+          />
+          <Button className="h-11 w-11 shrink-0 rounded-full px-0" onClick={onSend} disabled={!activeConversationId || uploading || (!value.trim() && !attachmentUrl)}>
+            ➤
+          </Button>
         </div>
         {error ? <div className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">{error}</div> : null}
       </div>

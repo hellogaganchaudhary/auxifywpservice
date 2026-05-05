@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
@@ -90,5 +90,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async me(@Req() req: any) {
     return { user: req.user };
+  }
+
+  @Patch("profile")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async updateProfile(@Req() req: any, @Body() body: { name?: string; phone?: string; profileInfo?: string }) {
+    const user = await this.authService.updateProfile(req.user.id || req.user.sub, body);
+    return { user };
   }
 }

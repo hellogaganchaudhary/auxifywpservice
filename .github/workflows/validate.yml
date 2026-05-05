@@ -1,0 +1,34 @@
+name: Validate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate --schema prisma/schema.prisma
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Build Web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+        run: pnpm --filter web build

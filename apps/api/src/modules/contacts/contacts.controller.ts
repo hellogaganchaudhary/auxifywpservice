@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -50,11 +49,6 @@ export class ContactsController {
     @Body() body: UpdateContactDto
   ) {
     return this.contactsService.update(req.user.organizationId, id, body);
-  }
-
-  @Delete(":id")
-  async remove(@Req() req: any, @Param("id") id: string) {
-    return this.contactsService.remove(req.user.organizationId, id);
   }
 
   @Post("import-csv")

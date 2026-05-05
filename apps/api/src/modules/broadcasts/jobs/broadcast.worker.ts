@@ -6,6 +6,8 @@ const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
 const prisma = new PrismaClient();
 
+console.log(`[broadcast-worker] starting queue listener on broadcast-queue (${redisUrl.replace(/:\/\/.*@/, "://***@")})`);
+
 async function resolveAudience(organizationId: string, audience: any) {
   if (!audience) return [];
   if (audience.type === "ALL") {
@@ -121,13 +123,20 @@ new Worker(
   async (job) => {
     if (job.name !== "send-broadcast") return;
     const { broadcastId } = job.data as { broadcastId: string };
+    console.log(`[broadcast-worker] job ${job.id} received for broadcast ${broadcastId}`);
 
     const broadcast = await prisma.broadcast.findUnique({
       where: { id: broadcastId },
       include: { template: true },
     });
-    if (!broadcast) return;
-    if (broadcast.status === BroadcastStatus.CANCELLED) return;
+    if (!broadcast) {
+      console.warn(`[broadcast-worker] broadcast ${broadcastId} not found`);
+      return;
+    }
+    if (broadcast.status === BroadcastStatus.CANCELLED) {
+      console.log(`[broadcast-worker] broadcast ${broadcastId} is cancelled; skipping`);
+      return;
+    }
 
     const wabaConfig = await prisma.wabaConfig.findUnique({
       where: { organizationId: broadcast.organizationId },
@@ -149,6 +158,7 @@ new Worker(
       broadcast.organizationId,
       broadcast.audience
     );
+    console.log(`[broadcast-worker] broadcast ${broadcast.id} audience resolved: ${audience.length}`);
 
     const templateVariables = (broadcast as any).templateVariables ||
       (broadcast.audience as any)?.templateVariables ||
@@ -169,8 +179,6 @@ new Worker(
           },
           update: {
             contactId: contact.id,
-            status: "PENDING",
-            error: null,
           },
           create: {
             organizationId: broadcast.organizationId,
@@ -180,7 +188,17 @@ new Worker(
             status: "PENDING",
           },
         });
+
         recipientId = recipient.id;
+
+        // Idempotency check: skip if already sent or successfully processed
+        if (recipient.status !== "PENDING" && recipient.status !== "FAILED") {
+          continue;
+        }
+
+        // Basic rate-limiting delay (e.g., 50ms = 20 messages per second per worker)
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
         const response = await sendTemplateMessage({
           accessToken: wabaConfig.accessToken,
           phoneNumberId: wabaConfig.phoneNumberId,
@@ -190,6 +208,7 @@ new Worker(
           templateVariables,
           broadcastId: broadcast.id,
         });
+        console.log(`[broadcast-worker] sent broadcast ${broadcast.id} to ${contact.phone}`);
         const now = new Date();
         const whatsappMessageId = extractWhatsAppMessageId(response);
         const conversation = await ensureConversation(broadcast.organizationId, contact);
@@ -209,6 +228,7 @@ new Worker(
               type: "TEMPLATE",
               direction: "OUTBOUND",
               status: "sent",
+              externalId: whatsappMessageId,
             },
             create: {
               id: whatsappMessageId,
@@ -217,6 +237,7 @@ new Worker(
               type: "TEMPLATE",
               direction: "OUTBOUND",
               status: "sent",
+              externalId: whatsappMessageId,
               createdAt: now,
             },
           });
@@ -228,6 +249,7 @@ new Worker(
         });
       } catch (error) {
         failed += 1;
+        console.error(`[broadcast-worker] failed broadcast ${broadcast.id} to ${contact.phone}: ${formatError(error)}`);
         if (recipientId) {
           await prisma.broadcastRecipient.update({
             where: { id: recipientId },
@@ -258,6 +280,18 @@ new Worker(
         stats,
       },
     });
+    console.log(`[broadcast-worker] completed broadcast ${broadcast.id}: sent=${stats.sent} failed=${stats.failed} audience=${stats.audience}`);
   },
   { connection }
 );
+
+connection.on("error", (error) => {
+  console.error(`[broadcast-worker] redis error: ${error.message}`);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("[broadcast-worker] SIGTERM received; disconnecting");
+  await prisma.$disconnect();
+  connection.disconnect();
+  process.exit(0);
+});

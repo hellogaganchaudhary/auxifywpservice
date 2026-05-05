@@ -84,6 +84,7 @@ let inboxStore:
       filters: InboxFilters;
       savedViews: SavedInboxView[];
       loading: boolean;
+      error: string | null;
       initialized: boolean;
     }
   | undefined;
@@ -107,6 +108,7 @@ function getStore() {
       },
       savedViews: [],
       loading: true,
+      error: null,
       initialized: false,
     };
   }
@@ -183,24 +185,33 @@ export function useInbox() {
   const store = getStore();
 
   const loadConversations = useCallback(async () => {
-    updateStore({ loading: true });
-    const currentStore = getStore();
-    const params = new URLSearchParams();
-    if (currentStore.filters.search) params.set("search", currentStore.filters.search);
-    if (currentStore.filters.status) params.set("status", currentStore.filters.status);
-    if (currentStore.filters.label) params.set("label", currentStore.filters.label);
-    if (currentStore.filters.assignedTo) params.set("assignedTo", currentStore.filters.assignedTo);
+    updateStore({ loading: true, error: null });
+    try {
+      const currentStore = getStore();
+      const params = new URLSearchParams();
+      if (currentStore.filters.search) params.set("search", currentStore.filters.search);
+      if (currentStore.filters.status) params.set("status", currentStore.filters.status);
+      if (currentStore.filters.label) params.set("label", currentStore.filters.label);
+      if (currentStore.filters.assignedTo) params.set("assignedTo", currentStore.filters.assignedTo);
 
-    const { data } = await api.get(`/inbox/conversations${params.toString() ? `?${params.toString()}` : ""}`);
-    updateStore({
-      conversations: data,
-      loading: false,
-      initialized: true,
-      activeConversationId:
-        currentStore.activeConversationId && data.some((item: InboxConversation) => item.id === currentStore.activeConversationId)
-          ? currentStore.activeConversationId
-          : data?.[0]?.id ?? null,
-    });
+      const { data } = await api.get(`/inbox/conversations${params.toString() ? `?${params.toString()}` : ""}`);
+      updateStore({
+        conversations: data,
+        loading: false,
+        error: null,
+        initialized: true,
+        activeConversationId:
+          currentStore.activeConversationId && data.some((item: InboxConversation) => item.id === currentStore.activeConversationId)
+            ? currentStore.activeConversationId
+            : data?.[0]?.id ?? null,
+      });
+    } catch (error: any) {
+      updateStore({
+        loading: false,
+        initialized: true,
+        error: error?.response?.data?.message || error?.message || "Unable to load inbox conversations.",
+      });
+    }
   }, []);
 
   const loadViews = useCallback(async () => {
@@ -417,6 +428,7 @@ export function useInbox() {
 
   return {
     loading: store.loading,
+    error: store.error,
     conversations: store.conversations,
     activeConversation,
     activeConversationId: store.activeConversationId,

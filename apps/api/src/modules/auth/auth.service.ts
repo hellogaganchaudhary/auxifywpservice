@@ -196,11 +196,25 @@ export class AuthService {
     });
   }
 
+  async updateProfile(userId: string, payload: { name?: string; phone?: string; profileInfo?: string }) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: payload.name?.trim() || undefined,
+        phone: payload.phone?.trim() || null,
+        profileInfo: payload.profileInfo?.trim() || null,
+      },
+    });
+    return this.mapUser(user);
+  }
+
   private mapUser(user: any): AuthUser {
     return {
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
+      profileInfo: user.profileInfo,
       role: user.role,
       organizationId: user.organizationId,
     };

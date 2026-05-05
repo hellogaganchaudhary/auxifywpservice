@@ -47,5 +47,11 @@ export function useAuth() {
     [user]
   );
 
-  return { user, isLoading, login, logout, bootstrap, hasRole };
+  const updateProfile = useCallback(async (payload: { name: string; phone?: string; profileInfo?: string }) => {
+    const { data } = await api.patch("/auth/profile", payload);
+    setUser(data.user);
+    return data.user;
+  }, [setUser]);
+
+  return { user, isLoading, login, logout, bootstrap, hasRole, updateProfile };
 }

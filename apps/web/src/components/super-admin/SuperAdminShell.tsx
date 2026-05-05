@@ -2,20 +2,21 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const navItems: Array<{ label: string; href: Route }> = [
-  { label: "Overview", href: "/super-admin" },
   { label: "Organizations", href: "/super-admin/organizations" },
   { label: "Billing & Credits", href: "/super-admin/billing" },
 ];
 
 export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { bootstrap, user } = useAuth();
+  const router = useRouter();
+  const { bootstrap, user, logout } = useAuth();
 
   useEffect(() => {
     bootstrap();
@@ -43,6 +44,13 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <div className="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                 {user?.role || "SUPER_ADMIN"}
               </div>
+              <Button
+                onClick={() => { logout(); router.push('/super-admin-login'); }}
+                variant="ghost"
+                className="mt-3 w-full"
+              >
+                Logout
+              </Button>
             </div>
           </div>
 

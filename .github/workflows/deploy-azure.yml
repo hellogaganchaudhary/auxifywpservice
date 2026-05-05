@@ -1,0 +1,153 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: wpservice
+  AZURE_LOCATION: centralindia
+  API_APP_NAME: wpservice-api
+  WEB_APP_NAME: wpservice-web
+  WORKER_APP_NAME: wpservice-worker
+  ACR_NAME: wpserviceacr
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify resource group exists
+        run: az group show --name "$AZURE_RESOURCE_GROUP" --query name -o tsv
+
+      - name: Get ACR login server
+        id: acr
+        run: |
+          LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --resource-group "$AZURE_RESOURCE_GROUP" --query loginServer -o tsv)
+          echo "login_server=$LOGIN_SERVER" >> "$GITHUB_OUTPUT"
+
+      - name: ACR login
+        run: az acr login --name "$ACR_NAME"
+
+      - name: Build and push API image
+        run: |
+          docker build -f apps/api/Dockerfile -t ${{ steps.acr.outputs.login_server }}/api:${{ github.sha }} .
+          docker push ${{ steps.acr.outputs.login_server }}/api:${{ github.sha }}
+
+      - name: Build and push Web image
+        run: |
+          docker build \
+            -f apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            -t ${{ steps.acr.outputs.login_server }}/web:${{ github.sha }} .
+          docker push ${{ steps.acr.outputs.login_server }}/web:${{ github.sha }}
+
+      - name: Preview infrastructure changes
+        run: |
+          az deployment group what-if \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters @infra/main.parameters.json \
+            --parameters \
+              apiImage="${{ steps.acr.outputs.login_server }}/api:${{ github.sha }}" \
+              webImage="${{ steps.acr.outputs.login_server }}/web:${{ github.sha }}" \
+              publicApiUrl="${{ secrets.API_URL }}" \
+              databaseUrl="${{ secrets.DATABASE_URL }}" \
+              redisUrl="${{ secrets.REDIS_URL }}" \
+              jwtSecret="${{ secrets.JWT_SECRET }}" \
+              jwtRefreshSecret="${{ secrets.JWT_REFRESH_SECRET }}" \
+              betterAuthSecret="${{ secrets.BETTER_AUTH_SECRET }}" \
+              resendApiKey="${{ secrets.RESEND_API_KEY }}" \
+              stripeSecretKey="${{ secrets.STRIPE_SECRET_KEY }}" \
+              metaAppId="${{ secrets.META_APP_ID }}" \
+              metaAppSecret="${{ secrets.META_APP_SECRET }}" \
+              metaWebhookVerifyToken="${{ secrets.META_WEBHOOK_VERIFY_TOKEN }}" \
+              r2AccountId="${{ secrets.R2_ACCOUNT_ID }}" \
+              r2AccessKeyId="${{ secrets.R2_ACCESS_KEY_ID }}" \
+              r2SecretAccessKey="${{ secrets.R2_SECRET_ACCESS_KEY }}" \
+              r2Bucket="${{ secrets.R2_BUCKET }}" \
+              r2PublicUrl="${{ secrets.R2_PUBLIC_URL }}" \
+              corsOrigin="${{ secrets.CORS_ORIGIN }}" \
+              appUrl="${{ secrets.APP_URL }}" \
+              apiUrl="${{ secrets.API_URL }}" \
+              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+              mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
+              superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
+              superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
+              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}"
+
+      - name: Deploy application images
+        run: |
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters @infra/main.parameters.json \
+            --parameters \
+              apiImage="${{ steps.acr.outputs.login_server }}/api:${{ github.sha }}" \
+              webImage="${{ steps.acr.outputs.login_server }}/web:${{ github.sha }}" \
+              publicApiUrl="${{ secrets.API_URL }}" \
+              databaseUrl="${{ secrets.DATABASE_URL }}" \
+              redisUrl="${{ secrets.REDIS_URL }}" \
+              jwtSecret="${{ secrets.JWT_SECRET }}" \
+              jwtRefreshSecret="${{ secrets.JWT_REFRESH_SECRET }}" \
+              betterAuthSecret="${{ secrets.BETTER_AUTH_SECRET }}" \
+              resendApiKey="${{ secrets.RESEND_API_KEY }}" \
+              stripeSecretKey="${{ secrets.STRIPE_SECRET_KEY }}" \
+              metaAppId="${{ secrets.META_APP_ID }}" \
+              metaAppSecret="${{ secrets.META_APP_SECRET }}" \
+              metaWebhookVerifyToken="${{ secrets.META_WEBHOOK_VERIFY_TOKEN }}" \
+              r2AccountId="${{ secrets.R2_ACCOUNT_ID }}" \
+              r2AccessKeyId="${{ secrets.R2_ACCESS_KEY_ID }}" \
+              r2SecretAccessKey="${{ secrets.R2_SECRET_ACCESS_KEY }}" \
+              r2Bucket="${{ secrets.R2_BUCKET }}" \
+              r2PublicUrl="${{ secrets.R2_PUBLIC_URL }}" \
+              corsOrigin="${{ secrets.CORS_ORIGIN }}" \
+              appUrl="${{ secrets.APP_URL }}" \
+              apiUrl="${{ secrets.API_URL }}" \
+              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+              mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
+              superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
+              superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
+              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}"
+
+      - name: Sync production database schema
+        run: |
+          az containerapp exec \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --command "node node_modules/prisma/build/index.js db push --schema prisma/schema.prisma --skip-generate"
+
+      - name: Seed production super-admin
+        run: |
+          az containerapp exec \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --command "node apps/api/seed-super-admin.mjs"
+
+      - name: Show live URLs
+        run: |
+          echo "API: https://$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$API_APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)"
+          echo "Web: https://$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$WEB_APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)"

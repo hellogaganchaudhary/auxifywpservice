@@ -1,7 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const titles: Record<string, string> = {
   "/dashboard": "Organization dashboard",
@@ -17,7 +19,8 @@ const titles: Record<string, string> = {
 
 export function Header() {
   const pathname = usePathname() || "/dashboard";
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const title = titles[pathname] || (pathname.startsWith("/settings") ? "Settings" : "Workspace");
 
   return (
@@ -34,6 +37,9 @@ export function Header() {
         <div className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-xs font-bold text-accent">
           {(user?.name || user?.email || "A").slice(0, 1).toUpperCase()}
         </div>
+        <Button onClick={() => { logout(); router.push('/login'); }} variant="ghost">
+          Logout
+        </Button>
       </div>
     </header>
   );

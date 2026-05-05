@@ -28,7 +28,7 @@ export default function SuperAdminLoginPage() {
       setAccessToken(data.accessToken);
       setUser(data.user);
       setLoading(false);
-      router.push("/super-admin");
+      router.push("/super-admin/organizations");
     } catch {
       setError("Super-admin credentials are invalid.");
     } finally {

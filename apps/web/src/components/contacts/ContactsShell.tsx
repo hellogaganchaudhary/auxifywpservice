@@ -35,7 +35,6 @@ export function ContactsShell() {
     loadContacts,
     createContact,
     updateContact,
-    deleteContact,
     importCsvMapped,
     previewCsv,
     createSegment,
@@ -422,14 +421,6 @@ export function ContactsShell() {
                       ) : null}
                     </div>
                   </div>
-                  <RoleGuard roles={["ADMIN", "MANAGER"]}>
-                    <Button
-                      variant="destructive"
-                      onClick={() => activeContactId && deleteContact(activeContactId)}
-                    >
-                      Delete
-                    </Button>
-                  </RoleGuard>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,13 +23,11 @@ function readinessTone(isReady: boolean, isPartial?: boolean) {
 }
 
 export default function DashboardPage() {
-  const [templateSyncing, setTemplateSyncing] = useState(false);
-  const [templateSyncMessage, setTemplateSyncMessage] = useState<string | null>(null);
   const { user } = useAuth();
   const { organization, wabaConfig, loading: orgLoading } = useOrganization();
   const { contacts, stats, importing, loading: contactsLoading } = useContacts();
   const { conversations, loading: inboxLoading } = useInbox();
-  const { templates, loading: templatesLoading, error: templatesError, reload: reloadTemplates, syncMetaTemplates } = useTemplates();
+  const { templates, loading: templatesLoading, error: templatesError, reload: reloadTemplates } = useTemplates();
 
   const whatsappConnected = Boolean(wabaConfig?.wabaId && wabaConfig?.phoneNumberId && wabaConfig?.accessToken);
   const whatsappVerified = Boolean(wabaConfig?.verifiedAt || wabaConfig?.status === "VERIFIED");
@@ -91,14 +88,11 @@ export default function DashboardPage() {
               {organizationName}
             </h1>
             <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-              Premium workspace for organization setup, lead uploads, WhatsApp profile, inbox conversations, templates, broadcasts, and sending readiness.
+              Premium workspace for organization setup, lead uploads, WhatsApp profile, inbox conversations, team readiness, and sending health.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:items-stretch lg:justify-end">
-            <Link href="/broadcasts"><Button className="w-full rounded-full px-6">Create broadcast campaign</Button></Link>
             <Link href="/contacts"><Button className="w-full rounded-full px-6">Upload leads</Button></Link>
-            <Link href="/templates"><Button variant="ghost" className="w-full rounded-full px-6">Templates homepage</Button></Link>
-            <Link href="/templates/new"><Button variant="ghost" className="w-full rounded-full px-6">Create template</Button></Link>
             <Link href="/settings/whatsapp"><Button variant="ghost" className="w-full rounded-full px-6">Connect WhatsApp</Button></Link>
           </div>
         </div>
@@ -117,39 +111,6 @@ export default function DashboardPage() {
             </div>
           </Card>
         ))}
-      </section>
-
-      <section className="overflow-hidden rounded-[2rem] border border-blue-200 bg-[linear-gradient(135deg,#0b1b3a,#123d8a_48%,#1683ff)] p-6 text-white shadow-sm md:p-8">
-        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
-          <div>
-            <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-blue-50">
-              Broadcast command center
-            </div>
-            <h2 className="mt-4 text-3xl font-display md:text-4xl">Create marketing and utility WhatsApp campaigns</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-50/90">
-              Use approved Meta templates, select all contacts, tags, segments, or imported CSV contact IDs, then send now or schedule. This is the dashboard shortcut for bulk marketing and utility messages.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/broadcasts"><Button className="rounded-full bg-white px-6 text-accent hover:bg-blue-50">Create new broadcast</Button></Link>
-              <Link href="/templates"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Check approved templates</Button></Link>
-              <Link href="/contacts"><Button variant="ghost" className="rounded-full border border-white/30 px-6 text-white hover:bg-white/10">Prepare audience</Button></Link>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-              <div className="text-3xl font-display">{approvedTemplates.length}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Approved templates</div>
-            </div>
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-              <div className="text-3xl font-display">{marketingTemplates}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Marketing ready</div>
-            </div>
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-              <div className="text-3xl font-display">{utilityTemplates}</div>
-              <div className="mt-1 text-xs uppercase tracking-wide text-blue-50/80">Utility ready</div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -244,9 +205,6 @@ export default function DashboardPage() {
             <Badge tone={templates.length > 0 ? "success" : "warning"}>{templatesLoading ? "Loading" : `${templates.length} found`}</Badge>
           </div>
           <div className="mt-5 space-y-2">
-            {templateSyncMessage ? (
-              <div className="rounded-2xl bg-blue-50 p-4 text-sm text-accent">{templateSyncMessage}</div>
-            ) : null}
             {templatesError ? (
               <div className="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm text-error">
                 <div>{templatesError}</div>
@@ -255,7 +213,7 @@ export default function DashboardPage() {
             ) : templatesLoading ? (
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Fetching templates…</div>
             ) : templates.length === 0 ? (
-              <div className="rounded-2xl bg-blue-50 p-4 text-sm text-accent">No templates yet. Create the first template from here.</div>
+              <div className="rounded-2xl bg-blue-50 p-4 text-sm text-accent">No templates synced yet. Use the sidebar Template section.</div>
             ) : (
               templates.slice(0, 3).map((template) => (
                 <div key={template.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm">
@@ -267,29 +225,6 @@ export default function DashboardPage() {
                 </div>
               ))
             )}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link href="/templates/new"><Button className="rounded-full">+ Create New Template</Button></Link>
-            <Link href="/templates"><Button variant="ghost" className="rounded-full">View templates</Button></Link>
-            <Button
-              variant="ghost"
-              className="rounded-full"
-              disabled={templateSyncing}
-              onClick={async () => {
-                setTemplateSyncing(true);
-                setTemplateSyncMessage(null);
-                try {
-                  const result = await syncMetaTemplates();
-                  setTemplateSyncMessage(`Synced ${result.count || 0} templates from Meta.`);
-                } catch (syncError: any) {
-                  setTemplateSyncMessage(syncError?.response?.data?.message || "Meta template sync failed.");
-                } finally {
-                  setTemplateSyncing(false);
-                }
-              }}
-            >
-              {templateSyncing ? "Syncing…" : "Sync from Meta"}
-            </Button>
           </div>
         </Card>
 

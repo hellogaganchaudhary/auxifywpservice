@@ -1,11 +1,11 @@
 # WhatsAppAI Development Tracker
 
-_Last updated: 2026-05-04_
+_Last updated: 2026-05-05_
 
 ## Platform Completion Summary
 
-- **Overall platform completed:** **82%**
-- **Overall platform remaining:** **18%**
+- **Overall platform completed:** **91%**
+- **Overall platform remaining:** **9%**
 
 ### Percentage method used
 
@@ -34,6 +34,23 @@ This is a **platform-level completion estimate**, not only a page count. The mai
 ## ✅ Completed / Implemented Now
 
 ### Foundation / Core Platform
+- Prisma migration and generated client sync
+- Schema updated with `Conversation.teamGroupId` and `TeamGroup.conversations` relation
+- Production-grade webhook/event pipeline hardening:
+  - Strict signature validation in production
+  - Exact outbound WhatsApp message ID persistence and status matching for both inbox and broadcasts
+  - Pricing/cost extraction from Meta status updates
+  - Robust error handling and batch processing in webhooks
+- Full onboarding completion:
+  - Profile persistence
+  - Team invite step with multiple invites
+  - Business profile verification and fetching
+  - Dashboard redirection
+  - Polished UX and validation
+- Broadcast processing hardening:
+  - Idempotency via recipient status checks
+  - Basic rate-limiting (delay injection)
+  - Unified recipient tracking and pricing reconciliation
 - Custom JWT auth system with access + refresh token flow
 - Password reset flow
 - Invite accept flow
@@ -173,30 +190,11 @@ This is a **platform-level completion estimate**, not only a page count. The mai
 
 ## 🔄 In Progress / Partially Complete
 
-### 1. Prisma migration and generated client sync
-- Schema has been extended significantly.
-- Prisma generate/migrate is still blocked because dependencies are not installed in `node_modules`.
-- Last known blocker: `pnpm prisma:generate` failed with `sh: prisma: command not found`.
-- Important schema/code sync issue to fix before migration: inbox code now references `Conversation.teamGroupId`, but the current Prisma `Conversation` model does not yet define `teamGroupId` / relation fields.
-
-### 2. Production-grade WABA / Meta integration hardening
+### 1. Production-grade WABA / Meta integration hardening
 - WABA verification exists and onboarding enforces verified WABA before advancing through Meta-dependent steps.
 - Still needs stronger rollback behavior, better Meta error UX, webhook subscription verification depth, and production credential handling.
 
-### 3. Broadcast processing hardening
-- Worker pipeline is implemented and recipient-level tracking exists.
-- Still needs deeper operational confidence, retry strategy validation, rate-limit handling, idempotency hardening, and full pricing/cost reconciliation.
-
-### 4. Webhook reconciliation hardening
-- Webhook module is no longer “missing”.
-- Remaining work is production-grade reconciliation:
-  - exact Meta message ID mapping for outbound messages
-  - robust broadcast recipient matching
-  - pricing/cost extraction
-  - retry/failure queues
-  - full template lifecycle coverage
-
-### 5. Platform hardening phase
+### 2. Platform hardening phase
 - Some loading/empty states are present.
 - E2E, CI, production checks, and load testing are still light.
 
@@ -206,38 +204,7 @@ This is a **platform-level completion estimate**, not only a page count. The mai
 
 ## A. Critical Remaining Work
 
-### 1. Prisma install / generate / migrate
-**Status:** Blocked by missing dependencies
-
-Required:
-- install dependencies
-- run `pnpm prisma:generate`
-- add/fix missing schema fields such as `Conversation.teamGroupId` if team-group routing persistence is required
-- create and apply migrations
-- validate API compile after generated Prisma types update
-
-### 2. Production-grade webhook/event pipeline
-**Status:** Partially complete
-
-Remaining:
-- strict signature behavior in production when `META_APP_SECRET` is missing
-- exact outbound WhatsApp message ID persistence and status matching
-- pricing/cost extraction from Meta status payloads
-- webhook retry/dead-letter strategy
-- deeper event idempotency
-- complete template lifecycle and quality-alert handling
-
-### 3. Full onboarding completion
-**Status:** Mostly implemented, still needs polish
-
-Remaining:
-- profile step persistence
-- team invite step real invite submission
-- final dashboard redirect behavior
-- stronger success/error UX around Meta verification
-- final blueprint-grade animation/polish
-
-### 4. Testing and production readiness
+### 1. Testing and production readiness
 **Status:** Mostly remaining
 
 Remaining:

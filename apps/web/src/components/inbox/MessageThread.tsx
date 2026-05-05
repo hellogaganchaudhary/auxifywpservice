@@ -29,12 +29,13 @@ function statusTone(status?: string) {
 function MediaPreview({ attachment, outbound }: { attachment: Attachment; outbound: boolean }) {
   const kind = mediaKind(attachment);
   const label = attachment.fileName || "Attachment";
+  const isSticker = attachment.mimeType === "image/webp" || label.toLowerCase().includes("sticker");
 
   return (
     <div className={`overflow-hidden rounded-2xl border ${outbound ? "border-emerald-200 bg-white" : "border-slate-200 bg-white"}`}>
       {kind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={attachment.url} alt={label} className="max-h-80 w-full rounded-t-2xl object-contain bg-slate-50" />
+        <img src={attachment.url} alt={label} className={`${isSticker ? "max-h-40 p-3" : "max-h-80"} w-full rounded-t-2xl object-contain bg-slate-50`} />
       ) : kind === "video" ? (
         <div className="bg-slate-950">
           <video src={attachment.url} controls playsInline preload="metadata" className="max-h-80 w-full rounded-t-2xl bg-black" />
@@ -54,7 +55,7 @@ function MediaPreview({ attachment, outbound }: { attachment: Attachment; outbou
         </div>
       )}
       <div className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
-        <span className="min-w-0 truncate text-slate-600">{label}</span>
+        <span className="min-w-0 truncate text-slate-600">{isSticker ? "Sticker" : label}</span>
         <a href={attachment.url} target="_blank" rel="noreferrer" className="shrink-0 font-medium text-emerald-700 hover:underline">
           Open
         </a>

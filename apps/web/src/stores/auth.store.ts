@@ -4,6 +4,8 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
+  phone?: string | null;
+  profileInfo?: string | null;
   role: "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "AGENT" | "VIEWER";
   organizationId?: string | null;
 };

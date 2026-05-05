@@ -70,9 +70,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user) {
+      return {
+        ...payload,
+        userId: payload.sub,
+        authType: "jwt",
+      };
+    }
+
     return {
-      ...payload,
-      userId: payload.sub,
+      id: user.id,
+      sub: user.id,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      profileInfo: user.profileInfo,
+      role: user.role,
+      organizationId: user.organizationId,
       authType: "jwt",
     };
   }
