@@ -83,6 +83,174 @@ param superAdminEmail string
 param superAdminPassword string
 param superAdminName string = 'Platform Super Admin'
 
+var apiOptionalSecrets = concat(
+  betterAuthSecret != '' ? [
+    {
+      name: 'better-auth-secret'
+      value: betterAuthSecret
+    }
+  ] : [],
+  resendApiKey != '' ? [
+    {
+      name: 'resend-api-key'
+      value: resendApiKey
+    }
+  ] : [],
+  stripeSecretKey != '' ? [
+    {
+      name: 'stripe-secret-key'
+      value: stripeSecretKey
+    }
+  ] : [],
+  metaAppId != '' ? [
+    {
+      name: 'meta-app-id'
+      value: metaAppId
+    }
+  ] : [],
+  metaAppSecret != '' ? [
+    {
+      name: 'meta-app-secret'
+      value: metaAppSecret
+    }
+  ] : [],
+  metaWebhookVerifyToken != '' ? [
+    {
+      name: 'meta-webhook-verify-token'
+      value: metaWebhookVerifyToken
+    }
+  ] : [],
+  r2AccountId != '' ? [
+    {
+      name: 'r2-account-id'
+      value: r2AccountId
+    }
+  ] : [],
+  r2AccessKeyId != '' ? [
+    {
+      name: 'r2-access-key-id'
+      value: r2AccessKeyId
+    }
+  ] : [],
+  r2SecretAccessKey != '' ? [
+    {
+      name: 'r2-secret-access-key'
+      value: r2SecretAccessKey
+    }
+  ] : [],
+  superAdminPassword != '' ? [
+    {
+      name: 'super-admin-password'
+      value: superAdminPassword
+    }
+  ] : []
+)
+
+var apiOptionalEnv = concat(
+  betterAuthSecret != '' ? [
+    {
+      name: 'BETTER_AUTH_SECRET'
+      secretRef: 'better-auth-secret'
+    }
+  ] : [],
+  resendApiKey != '' ? [
+    {
+      name: 'RESEND_API_KEY'
+      secretRef: 'resend-api-key'
+    }
+  ] : [],
+  stripeSecretKey != '' ? [
+    {
+      name: 'STRIPE_SECRET_KEY'
+      secretRef: 'stripe-secret-key'
+    }
+  ] : [],
+  metaAppId != '' ? [
+    {
+      name: 'META_APP_ID'
+      secretRef: 'meta-app-id'
+    }
+  ] : [],
+  metaAppSecret != '' ? [
+    {
+      name: 'META_APP_SECRET'
+      secretRef: 'meta-app-secret'
+    }
+  ] : [],
+  metaWebhookVerifyToken != '' ? [
+    {
+      name: 'META_WEBHOOK_VERIFY_TOKEN'
+      secretRef: 'meta-webhook-verify-token'
+    }
+  ] : [],
+  r2AccountId != '' ? [
+    {
+      name: 'R2_ACCOUNT_ID'
+      secretRef: 'r2-account-id'
+    }
+  ] : [],
+  r2AccessKeyId != '' ? [
+    {
+      name: 'R2_ACCESS_KEY_ID'
+      secretRef: 'r2-access-key-id'
+    }
+  ] : [],
+  r2SecretAccessKey != '' ? [
+    {
+      name: 'R2_SECRET_ACCESS_KEY'
+      secretRef: 'r2-secret-access-key'
+    }
+  ] : [],
+  superAdminPassword != '' ? [
+    {
+      name: 'SUPER_ADMIN_PASSWORD'
+      secretRef: 'super-admin-password'
+    }
+  ] : []
+)
+
+var workerOptionalSecrets = concat(
+  metaAppId != '' ? [
+    {
+      name: 'meta-app-id'
+      value: metaAppId
+    }
+  ] : [],
+  metaAppSecret != '' ? [
+    {
+      name: 'meta-app-secret'
+      value: metaAppSecret
+    }
+  ] : [],
+  metaWebhookVerifyToken != '' ? [
+    {
+      name: 'meta-webhook-verify-token'
+      value: metaWebhookVerifyToken
+    }
+  ] : []
+)
+
+var workerOptionalEnv = concat(
+  metaAppId != '' ? [
+    {
+      name: 'META_APP_ID'
+      secretRef: 'meta-app-id'
+    }
+  ] : [],
+  metaAppSecret != '' ? [
+    {
+      name: 'META_APP_SECRET'
+      secretRef: 'meta-app-secret'
+    }
+  ] : [],
+  metaWebhookVerifyToken != '' ? [
+    {
+      name: 'META_WEBHOOK_VERIFY_TOKEN'
+      secretRef: 'meta-webhook-verify-token'
+    }
+  ] : []
+)
+
 resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsName
   location: location
@@ -139,131 +307,57 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [
-        {
-          name: 'acr-password'
-          value: registry.listCredentials().passwords[0].value
-        }
-        {
-          name: 'database-url'
-          value: databaseUrl
-        }
-        {
-          name: 'redis-url'
-          value: redisUrl
-        }
-        {
-          name: 'jwt-secret'
-          value: jwtSecret
-        }
-        {
-          name: 'jwt-refresh-secret'
-          value: jwtRefreshSecret
-        }
-        if (betterAuthSecret != '') {
-          name: 'better-auth-secret'
-          value: betterAuthSecret
-        }
-        if (resendApiKey != '') {
-          name: 'resend-api-key'
-          value: resendApiKey
-        }
-        if (stripeSecretKey != '') {
-          name: 'stripe-secret-key'
-          value: stripeSecretKey
-        }
-        if (metaAppId != '') {
-          name: 'meta-app-id'
-          value: metaAppId
-        }
-        if (metaAppSecret != '') {
-          name: 'meta-app-secret'
-          value: metaAppSecret
-        }
-        if (metaWebhookVerifyToken != '') {
-          name: 'meta-webhook-verify-token'
-          value: metaWebhookVerifyToken
-        }
-        if (r2AccountId != '') {
-          name: 'r2-account-id'
-          value: r2AccountId
-        }
-        if (r2AccessKeyId != '') {
-          name: 'r2-access-key-id'
-          value: r2AccessKeyId
-        }
-        if (r2SecretAccessKey != '') {
-          name: 'r2-secret-access-key'
-          value: r2SecretAccessKey
-        }
-        if (superAdminPassword != '') {
-          name: 'super-admin-password'
-          value: superAdminPassword
-        }
-      ]
+      secrets: concat(
+        [
+          {
+            name: 'acr-password'
+            value: registry.listCredentials().passwords[0].value
+          }
+          {
+            name: 'database-url'
+            value: databaseUrl
+          }
+          {
+            name: 'redis-url'
+            value: redisUrl
+          }
+          {
+            name: 'jwt-secret'
+            value: jwtSecret
+          }
+          {
+            name: 'jwt-refresh-secret'
+            value: jwtRefreshSecret
+          }
+        ],
+        apiOptionalSecrets
+      )
     }
     template: {
       containers: [
         {
           name: 'api'
           image: apiImage
-          env: [
-            { name: 'NODE_ENV', value: 'production' }
-            { name: 'PORT', value: '4000' }
-            { name: 'DATABASE_URL', secretRef: 'database-url' }
-            { name: 'REDIS_URL', secretRef: 'redis-url' }
-            { name: 'JWT_SECRET', secretRef: 'jwt-secret' }
-            { name: 'JWT_REFRESH_SECRET', secretRef: 'jwt-refresh-secret' }
-            if (betterAuthSecret != '') {
-              name: 'BETTER_AUTH_SECRET'
-              secretRef: 'better-auth-secret'
-            }
-            if (resendApiKey != '') {
-              name: 'RESEND_API_KEY'
-              secretRef: 'resend-api-key'
-            }
-            if (stripeSecretKey != '') {
-              name: 'STRIPE_SECRET_KEY'
-              secretRef: 'stripe-secret-key'
-            }
-            if (metaAppId != '') {
-              name: 'META_APP_ID'
-              secretRef: 'meta-app-id'
-            }
-            if (metaAppSecret != '') {
-              name: 'META_APP_SECRET'
-              secretRef: 'meta-app-secret'
-            }
-            if (metaWebhookVerifyToken != '') {
-              name: 'META_WEBHOOK_VERIFY_TOKEN'
-              secretRef: 'meta-webhook-verify-token'
-            }
-            if (r2AccountId != '') {
-              name: 'R2_ACCOUNT_ID'
-              secretRef: 'r2-account-id'
-            }
-            if (r2AccessKeyId != '') {
-              name: 'R2_ACCESS_KEY_ID'
-              secretRef: 'r2-access-key-id'
-            }
-            if (r2SecretAccessKey != '') {
-              name: 'R2_SECRET_ACCESS_KEY'
-              secretRef: 'r2-secret-access-key'
-            }
-            { name: 'R2_BUCKET', value: r2Bucket }
-            { name: 'R2_PUBLIC_URL', value: r2PublicUrl }
-            { name: 'CORS_ORIGIN', value: corsOrigin }
-            { name: 'APP_URL', value: appUrl }
-            { name: 'API_URL', value: apiUrl }
-            { name: 'API_PUBLIC_URL', value: publicApiUrl }
-            { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
-            { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }
-            if (superAdminPassword != '') {
-              name: 'SUPER_ADMIN_PASSWORD'
-              secretRef: 'super-admin-password'
-            }
-            { name: 'SUPER_ADMIN_NAME', value: superAdminName }
-          ]
+          env: concat(
+            [
+              { name: 'NODE_ENV', value: 'production' }
+              { name: 'PORT', value: '4000' }
+              { name: 'DATABASE_URL', secretRef: 'database-url' }
+              { name: 'REDIS_URL', secretRef: 'redis-url' }
+              { name: 'JWT_SECRET', secretRef: 'jwt-secret' }
+              { name: 'JWT_REFRESH_SECRET', secretRef: 'jwt-refresh-secret' }
+              { name: 'R2_BUCKET', value: r2Bucket }
+              { name: 'R2_PUBLIC_URL', value: r2PublicUrl }
+              { name: 'CORS_ORIGIN', value: corsOrigin }
+              { name: 'APP_URL', value: appUrl }
+              { name: 'API_URL', value: apiUrl }
+              { name: 'API_PUBLIC_URL', value: publicApiUrl }
+              { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
+              { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }
+              { name: 'SUPER_ADMIN_NAME', value: superAdminName }
+            ],
+            apiOptionalEnv
+          )
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -340,32 +434,23 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [
-        {
-          name: 'acr-password'
-          value: registry.listCredentials().passwords[0].value
-        }
-        {
-          name: 'database-url'
-          value: databaseUrl
-        }
-        {
-          name: 'redis-url'
-          value: redisUrl
-        }
-        if (metaAppId != '') {
-          name: 'meta-app-id'
-          value: metaAppId
-        }
-        if (metaAppSecret != '') {
-          name: 'meta-app-secret'
-          value: metaAppSecret
-        }
-        if (metaWebhookVerifyToken != '') {
-          name: 'meta-webhook-verify-token'
-          value: metaWebhookVerifyToken
-        }
-      ]
+      secrets: concat(
+        [
+          {
+            name: 'acr-password'
+            value: registry.listCredentials().passwords[0].value
+          }
+          {
+            name: 'database-url'
+            value: databaseUrl
+          }
+          {
+            name: 'redis-url'
+            value: redisUrl
+          }
+        ],
+        workerOptionalSecrets
+      )
     }
     template: {
       containers: [
@@ -376,26 +461,17 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
             'node'
             'apps/api/dist/modules/broadcasts/jobs/broadcast.worker.js'
           ]
-          env: [
-            { name: 'NODE_ENV', value: 'production' }
-            { name: 'DATABASE_URL', secretRef: 'database-url' }
-            { name: 'REDIS_URL', secretRef: 'redis-url' }
-            if (metaAppId != '') {
-              name: 'META_APP_ID'
-              secretRef: 'meta-app-id'
-            }
-            if (metaAppSecret != '') {
-              name: 'META_APP_SECRET'
-              secretRef: 'meta-app-secret'
-            }
-            if (metaWebhookVerifyToken != '') {
-              name: 'META_WEBHOOK_VERIFY_TOKEN'
-              secretRef: 'meta-webhook-verify-token'
-            }
-            { name: 'MEDIA_UPLOAD_DIR', value: mediaUploadDir }
-            { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
-            { name: 'API_PUBLIC_URL', value: publicApiUrl }
-          ]
+          env: concat(
+            [
+              { name: 'NODE_ENV', value: 'production' }
+              { name: 'DATABASE_URL', secretRef: 'database-url' }
+              { name: 'REDIS_URL', secretRef: 'redis-url' }
+              { name: 'MEDIA_UPLOAD_DIR', value: mediaUploadDir }
+              { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
+              { name: 'API_PUBLIC_URL', value: publicApiUrl }
+            ],
+            workerOptionalEnv
+          )
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
