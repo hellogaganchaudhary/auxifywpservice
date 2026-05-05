@@ -104,6 +104,8 @@ export class WebhooksService {
       where: { id: status.id, conversation: { organizationId } },
     });
 
+    await this.bumpBroadcastStats(organizationId, status);
+
     if (!message) return;
 
     await this.prisma.message.update({
@@ -122,7 +124,6 @@ export class WebhooksService {
       },
     });
 
-    await this.bumpBroadcastStats(organizationId, status);
     this.inboxGateway.emitConversationUpdated(organizationId, conversation);
     this.logger.log(`Updated message ${message.id} to ${status.status}`);
     return conversation;
@@ -234,6 +235,8 @@ export class WebhooksService {
     if (updatedConversation) {
       this.inboxGateway.emitConversationUpdated(organizationId, updatedConversation);
     }
+
+    await this.markLatestBroadcastReply(organizationId, phone);
 
     await this.logEvent(organizationId, "messages.inbound", { message, contact: contactPayload, value }, message.id);
   }
@@ -360,18 +363,7 @@ export class WebhooksService {
     });
     if (!broadcast) return;
 
-    const currentStats = (broadcast.stats as Record<string, number> | null) || {
-      sent: 0,
-      delivered: 0,
-      read: 0,
-      failed: 0,
-    };
-
-    const nextStats = { ...currentStats };
     const normalized = String(status.status || "").toLowerCase();
-    if (normalized === "delivered") nextStats.delivered += 1;
-    if (normalized === "read") nextStats.read += 1;
-    if (normalized === "failed") nextStats.failed += 1;
 
     const recipient = status?.recipient_id
       ? await this.prisma.broadcastRecipient.findFirst({
@@ -383,18 +375,74 @@ export class WebhooksService {
       await this.prisma.broadcastRecipient.update({
         where: { id: recipient.id },
         data: {
-          status: String(status.status || recipient.status).toUpperCase(),
-          deliveredAt: normalized === "delivered" ? new Date() : recipient.deliveredAt,
+          status: this.nextRecipientStatus(recipient.status, normalized),
+          deliveredAt: ["delivered", "read"].includes(normalized) ? new Date() : recipient.deliveredAt,
           readAt: normalized === "read" ? new Date() : recipient.readAt,
-          error: normalized === "failed" ? status?.errors?.[0]?.title || "DELIVERY_FAILED" : recipient.error,
+          error: normalized === "failed" ? this.formatWebhookError(status) : recipient.error,
         },
       });
     }
 
-    await this.prisma.broadcast.update({
-      where: { id: broadcast.id },
-      data: { stats: nextStats },
+    await this.refreshBroadcastStats(organizationId, broadcast.id);
+  }
+
+  private nextRecipientStatus(currentStatus: string, nextStatus: string) {
+    if (nextStatus === "failed") return "FAILED";
+    const rank: Record<string, number> = { PENDING: 0, SENT: 1, DELIVERED: 2, READ: 3 };
+    const normalizedNext = nextStatus.toUpperCase();
+    if (rank[normalizedNext] === undefined) return currentStatus;
+    return rank[normalizedNext] >= (rank[currentStatus] ?? 0) ? normalizedNext : currentStatus;
+  }
+
+  private formatWebhookError(status: any) {
+    const error = status?.errors?.[0];
+    return error?.message || error?.title || error?.details || "DELIVERY_FAILED";
+  }
+
+  private async markLatestBroadcastReply(organizationId: string, phone: string) {
+    const recipient = await this.prisma.broadcastRecipient.findFirst({
+      where: {
+        organizationId,
+        phone,
+        sentAt: { not: null },
+        repliedAt: null,
+        status: { in: ["SENT", "DELIVERED", "READ"] },
+      },
+      orderBy: { sentAt: "desc" },
     });
+    if (!recipient) return;
+
+    await this.prisma.broadcastRecipient.update({
+      where: { id: recipient.id },
+      data: { repliedAt: new Date() },
+    });
+    await this.refreshBroadcastStats(organizationId, recipient.broadcastId);
+  }
+
+  private async refreshBroadcastStats(organizationId: string, broadcastId: string) {
+    const recipients = await this.prisma.broadcastRecipient.findMany({
+      where: { organizationId, broadcastId },
+      select: { status: true, sentAt: true, deliveredAt: true, readAt: true, repliedAt: true },
+    });
+    const stats = this.calculateBroadcastStats(recipients);
+
+    await this.prisma.broadcast.update({
+      where: { id: broadcastId },
+      data: { stats },
+    });
+  }
+
+  private calculateBroadcastStats(
+    recipients: Array<{ status: string; sentAt: Date | null; deliveredAt: Date | null; readAt: Date | null; repliedAt: Date | null }>
+  ) {
+    return {
+      audience: recipients.length,
+      sent: recipients.filter((recipient) => recipient.sentAt || ["SENT", "DELIVERED", "READ"].includes(recipient.status)).length,
+      delivered: recipients.filter((recipient) => recipient.deliveredAt || ["DELIVERED", "READ"].includes(recipient.status)).length,
+      read: recipients.filter((recipient) => recipient.readAt || recipient.status === "READ").length,
+      failed: recipients.filter((recipient) => recipient.status === "FAILED").length,
+      replied: recipients.filter((recipient) => recipient.repliedAt).length,
+    };
   }
 
   private async logEvent(

@@ -84,6 +84,38 @@ async function sendTemplateMessage(params: {
   return res.json();
 }
 
+function applyTemplateVariables(body: string, templateVariables?: Record<string, string>) {
+  if (!templateVariables) return body;
+  return Object.entries(templateVariables).reduce(
+    (content, [key, value]) => content.replace(new RegExp(`{{\\s*${key}\\s*}}`, "g"), value),
+    body
+  );
+}
+
+function extractWhatsAppMessageId(response: any) {
+  return response?.messages?.[0]?.id || null;
+}
+
+function formatError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "SEND_FAILED");
+  return message.length > 900 ? `${message.slice(0, 900)}...` : message;
+}
+
+async function ensureConversation(organizationId: string, contact: { id: string; phone: string; name: string | null }) {
+  let conversation = await prisma.conversation.findFirst({
+    where: { organizationId, contactId: contact.id },
+  });
+  if (conversation) return conversation;
+
+  return prisma.conversation.create({
+    data: {
+      organizationId,
+      contactId: contact.id,
+      status: "OPEN",
+    },
+  });
+}
+
 new Worker(
   "broadcast-queue",
   async (job) => {
@@ -149,7 +181,7 @@ new Worker(
           },
         });
         recipientId = recipient.id;
-        await sendTemplateMessage({
+        const response = await sendTemplateMessage({
           accessToken: wabaConfig.accessToken,
           phoneNumberId: wabaConfig.phoneNumberId,
           to: contact.phone,
@@ -158,23 +190,65 @@ new Worker(
           templateVariables,
           broadcastId: broadcast.id,
         });
+        const now = new Date();
+        const whatsappMessageId = extractWhatsAppMessageId(response);
+        const conversation = await ensureConversation(broadcast.organizationId, contact);
+        const content = applyTemplateVariables(broadcast.template.body || broadcast.template.name, templateVariables);
         sent += 1;
         await prisma.broadcastRecipient.update({
           where: { id: recipientId },
-          data: { status: "SENT", sentAt: new Date(), error: null },
+          data: { status: "SENT", sentAt: now, error: null },
         });
-      } catch {
+
+        if (whatsappMessageId) {
+          await prisma.message.upsert({
+            where: { id: whatsappMessageId },
+            update: {
+              conversationId: conversation.id,
+              content,
+              type: "TEMPLATE",
+              direction: "OUTBOUND",
+              status: "sent",
+            },
+            create: {
+              id: whatsappMessageId,
+              conversationId: conversation.id,
+              content,
+              type: "TEMPLATE",
+              direction: "OUTBOUND",
+              status: "sent",
+              createdAt: now,
+            },
+          });
+        }
+
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: now },
+        });
+      } catch (error) {
         failed += 1;
         if (recipientId) {
           await prisma.broadcastRecipient.update({
             where: { id: recipientId },
-            data: { status: "FAILED", error: "SEND_FAILED" },
+            data: { status: "FAILED", error: formatError(error) },
           });
         }
       }
     }
 
-    const stats = { sent, delivered: 0, read: 0, failed };
+    const recipientStats = await prisma.broadcastRecipient.findMany({
+      where: { organizationId: broadcast.organizationId, broadcastId: broadcast.id },
+      select: { status: true, sentAt: true, deliveredAt: true, readAt: true, repliedAt: true },
+    });
+    const stats = {
+      audience: recipientStats.length,
+      sent: recipientStats.filter((recipient) => recipient.sentAt || ["SENT", "DELIVERED", "READ"].includes(recipient.status)).length,
+      delivered: recipientStats.filter((recipient) => recipient.deliveredAt || ["DELIVERED", "READ"].includes(recipient.status)).length,
+      read: recipientStats.filter((recipient) => recipient.readAt || recipient.status === "READ").length,
+      failed,
+      replied: recipientStats.filter((recipient) => recipient.repliedAt).length,
+    };
 
     await prisma.broadcast.update({
       where: { id: broadcast.id },

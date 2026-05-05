@@ -148,27 +148,36 @@ export class BroadcastsService {
   }
 
   async analytics(organizationId: string, id: string) {
-    const broadcast = await this.get(organizationId, id);
+    await this.get(organizationId, id);
     const recipients = await this.prisma.broadcastRecipient.findMany({
       where: { organizationId, broadcastId: id },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
-    const stats = (broadcast.stats || {}) as Record<string, number>;
-    const sent = stats.sent ?? 0;
-    const delivered = stats.delivered ?? 0;
-    const read = stats.read ?? 0;
-    const failed = stats.failed ?? 0;
-    const replied = stats.replied ?? 0;
+    const allRecipients = await this.prisma.broadcastRecipient.findMany({
+      where: { organizationId, broadcastId: id },
+      select: { status: true, sentAt: true, deliveredAt: true, readAt: true, repliedAt: true },
+    });
+    const audience = allRecipients.length;
+    const sent = allRecipients.filter((recipient) => recipient.sentAt || ["SENT", "DELIVERED", "READ"].includes(recipient.status)).length;
+    const delivered = allRecipients.filter((recipient) => recipient.deliveredAt || ["DELIVERED", "READ"].includes(recipient.status)).length;
+    const read = allRecipients.filter((recipient) => recipient.readAt || recipient.status === "READ").length;
+    const failed = allRecipients.filter((recipient) => recipient.status === "FAILED").length;
+    const replied = allRecipients.filter((recipient) => recipient.repliedAt).length;
+    const pending = Math.max(audience - sent - failed, 0);
+    const completionRate = audience > 0 ? Number((((sent + failed) / audience) * 100).toFixed(1)) : 0;
     const deliveryRate = sent > 0 ? Number(((delivered / sent) * 100).toFixed(1)) : 0;
     const readRate = delivered > 0 ? Number(((read / delivered) * 100).toFixed(1)) : 0;
-    const failureRate = sent > 0 ? Number(((failed / sent) * 100).toFixed(1)) : 0;
+    const failureRate = audience > 0 ? Number(((failed / audience) * 100).toFixed(1)) : 0;
     return {
+      audience,
       sent,
       delivered,
       read,
       failed,
       replied,
+      pending,
+      completionRate,
       deliveryRate,
       readRate,
       failureRate,

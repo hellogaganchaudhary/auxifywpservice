@@ -6,6 +6,7 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
+    "worker:broadcast": "node dist/modules/broadcasts/jobs/broadcast.worker.js",
     "seed:super-admin": "node seed-super-admin.mjs",
     "test": "node --test",
     "lint": "eslint ."
