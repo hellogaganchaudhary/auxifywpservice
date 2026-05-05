@@ -3,6 +3,7 @@ node_modules
 .next-dev
 dist
 coverage
+.local-services
 .env
 .env.*
 !.env.example

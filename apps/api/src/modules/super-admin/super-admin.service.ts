@@ -161,6 +161,8 @@ export class SuperAdminService {
       },
     });
 
+    await this.authService.sendOnboardingEmail(adminUser.id, org.name);
+
     return { org, adminUser };
   }
 
@@ -220,6 +222,8 @@ export class SuperAdminService {
         },
       },
     });
+
+    await this.authService.sendOnboardingEmail(user.id, org.name);
 
     return user;
   }

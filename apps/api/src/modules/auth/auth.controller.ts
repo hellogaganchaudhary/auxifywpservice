@@ -54,8 +54,15 @@ export class AuthController {
   }
 
   @Post("invite/accept")
-  async acceptInvite(@Body() body: InviteAcceptDto) {
-    return this.authService.acceptInvite(body);
+  async acceptInvite(@Body() body: InviteAcceptDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.acceptInvite(body);
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    });
+    return { accessToken: result.accessToken, user: result.user };
   }
 
   @Get("refresh")

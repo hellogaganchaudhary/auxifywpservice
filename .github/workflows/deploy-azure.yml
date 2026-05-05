@@ -81,6 +81,7 @@ jobs:
               jwtRefreshSecret="${{ secrets.JWT_REFRESH_SECRET }}" \
               betterAuthSecret="${{ secrets.BETTER_AUTH_SECRET }}" \
               resendApiKey="${{ secrets.RESEND_API_KEY }}" \
+              emailFrom="${{ secrets.EMAIL_FROM }}" \
               stripeSecretKey="${{ secrets.STRIPE_SECRET_KEY }}" \
               metaAppId="${{ secrets.META_APP_ID }}" \
               metaAppSecret="${{ secrets.META_APP_SECRET }}" \
@@ -115,6 +116,7 @@ jobs:
               jwtRefreshSecret="${{ secrets.JWT_REFRESH_SECRET }}" \
               betterAuthSecret="${{ secrets.BETTER_AUTH_SECRET }}" \
               resendApiKey="${{ secrets.RESEND_API_KEY }}" \
+              emailFrom="${{ secrets.EMAIL_FROM }}" \
               stripeSecretKey="${{ secrets.STRIPE_SECRET_KEY }}" \
               metaAppId="${{ secrets.META_APP_ID }}" \
               metaAppSecret="${{ secrets.META_APP_SECRET }}" \

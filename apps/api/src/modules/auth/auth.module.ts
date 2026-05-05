@@ -4,6 +4,7 @@ import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { PrismaModule } from "../prisma/prisma.module";
+import { EmailModule } from "../email/email.module";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
 
@@ -15,6 +16,7 @@ import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
       signOptions: { expiresIn: "15m" },
     }),
     PrismaModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtRefreshStrategy],

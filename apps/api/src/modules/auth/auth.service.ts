@@ -10,14 +10,14 @@ import { UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthUser } from "./types/auth.types";
 import { InviteAcceptDto, InviteCreateDto, LoginDto } from "./dto/auth.dto";
-import { QueueService } from "../queues/queues.service";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-    private readonly queues: QueueService
+    private readonly emailService: EmailService
   ) {}
 
   async login(payload: LoginDto) {
@@ -70,11 +70,21 @@ export class AuthService {
   }
 
   async createInvite(payload: InviteCreateDto, createdBy: string) {
+    if (!payload.email?.trim()) {
+      throw new BadRequestException("Email is required");
+    }
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+    await this.prisma.invite.deleteMany({
+      where: {
+        email: payload.email.trim().toLowerCase(),
+        organizationId: payload.organizationId,
+        acceptedAt: null,
+      },
+    });
     const invite = await this.prisma.invite.create({
       data: {
-        email: payload.email,
+        email: payload.email.trim().toLowerCase(),
         role: payload.role,
         organizationId: payload.organizationId,
         token,
@@ -82,11 +92,8 @@ export class AuthService {
         createdBy,
       },
     });
-    const appUrl = process.env.APP_URL || process.env.WEB_APP_URL || process.env.FRONTEND_URL || "http://localhost:3000";
-    await this.queues.emailQueue.add("send-invite", {
-      to: payload.email,
-      inviteUrl: `${appUrl}/accept-invite?token=${token}`,
-    });
+    const inviteUrl = `${this.getAppUrl()}/accept-invite?token=${token}`;
+    await this.emailService.sendInviteEmail(invite.email, inviteUrl);
     return invite;
   }
 
@@ -120,22 +127,12 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) return { ok: true };
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) return { ok: true };
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
-    await this.prisma.passwordReset.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
-    await this.queues.emailQueue.add("send-reset", {
-      to: user.email,
-      resetUrl: `${appUrl}/reset-password?token=${token}`,
-    });
+    const resetUrl = await this.createPasswordResetUrl(user.id);
+    await this.emailService.sendResetEmail(user.email, resetUrl);
     return { ok: true };
   }
 
@@ -152,7 +149,25 @@ export class AuthService {
       where: { id: reset.userId },
       data: { passwordHash: hash },
     });
-    await this.prisma.passwordReset.delete({ where: { id: reset.id } });
+    await this.prisma.passwordReset.deleteMany({ where: { userId: reset.userId } });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: reset.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { ok: true };
+  }
+
+  async sendOnboardingEmail(userId: string, organizationName: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+    const setupUrl = await this.createPasswordResetUrl(user.id);
+    await this.emailService.sendOnboardingEmail(user.email, {
+      name: user.name,
+      organizationName,
+      setupUrl,
+    });
     return { ok: true };
   }
 
@@ -239,5 +254,23 @@ export class AuthService {
       role: user.role,
       organizationId: user.organizationId,
     };
+  }
+
+  private async createPasswordResetUrl(userId: string) {
+    await this.prisma.passwordReset.deleteMany({ where: { userId } });
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
+    await this.prisma.passwordReset.create({
+      data: {
+        userId,
+        token,
+        expiresAt,
+      },
+    });
+    return `${this.getAppUrl()}/reset-password?token=${token}`;
+  }
+
+  private getAppUrl() {
+    return (process.env.APP_URL || process.env.WEB_APP_URL || process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
   }
 }

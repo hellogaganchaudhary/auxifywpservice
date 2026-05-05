@@ -50,6 +50,8 @@ param betterAuthSecret string = ''
 @secure()
 param resendApiKey string = ''
 
+param emailFrom string = 'Auxify Engage <no-reply@auxify.live>'
+
 @secure()
 param stripeSecretKey string = ''
 
@@ -352,6 +354,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
               { name: 'APP_URL', value: appUrl }
               { name: 'API_URL', value: apiUrl }
               { name: 'API_PUBLIC_URL', value: publicApiUrl }
+              { name: 'EMAIL_FROM', value: emailFrom }
               { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
               { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }
               { name: 'SUPER_ADMIN_NAME', value: superAdminName }
