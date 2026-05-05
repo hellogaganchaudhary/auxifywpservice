@@ -160,43 +160,43 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'jwt-refresh-secret'
           value: jwtRefreshSecret
         }
-        {
+        if (betterAuthSecret != '') {
           name: 'better-auth-secret'
           value: betterAuthSecret
         }
-        {
+        if (resendApiKey != '') {
           name: 'resend-api-key'
           value: resendApiKey
         }
-        {
+        if (stripeSecretKey != '') {
           name: 'stripe-secret-key'
           value: stripeSecretKey
         }
-        {
+        if (metaAppId != '') {
           name: 'meta-app-id'
           value: metaAppId
         }
-        {
+        if (metaAppSecret != '') {
           name: 'meta-app-secret'
           value: metaAppSecret
         }
-        {
+        if (metaWebhookVerifyToken != '') {
           name: 'meta-webhook-verify-token'
           value: metaWebhookVerifyToken
         }
-        {
+        if (r2AccountId != '') {
           name: 'r2-account-id'
           value: r2AccountId
         }
-        {
+        if (r2AccessKeyId != '') {
           name: 'r2-access-key-id'
           value: r2AccessKeyId
         }
-        {
+        if (r2SecretAccessKey != '') {
           name: 'r2-secret-access-key'
           value: r2SecretAccessKey
         }
-        {
+        if (superAdminPassword != '') {
           name: 'super-admin-password'
           value: superAdminPassword
         }
@@ -214,15 +214,42 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'REDIS_URL', secretRef: 'redis-url' }
             { name: 'JWT_SECRET', secretRef: 'jwt-secret' }
             { name: 'JWT_REFRESH_SECRET', secretRef: 'jwt-refresh-secret' }
-            { name: 'BETTER_AUTH_SECRET', secretRef: 'better-auth-secret' }
-            { name: 'RESEND_API_KEY', secretRef: 'resend-api-key' }
-            { name: 'STRIPE_SECRET_KEY', secretRef: 'stripe-secret-key' }
-            { name: 'META_APP_ID', secretRef: 'meta-app-id' }
-            { name: 'META_APP_SECRET', secretRef: 'meta-app-secret' }
-            { name: 'META_WEBHOOK_VERIFY_TOKEN', secretRef: 'meta-webhook-verify-token' }
-            { name: 'R2_ACCOUNT_ID', secretRef: 'r2-account-id' }
-            { name: 'R2_ACCESS_KEY_ID', secretRef: 'r2-access-key-id' }
-            { name: 'R2_SECRET_ACCESS_KEY', secretRef: 'r2-secret-access-key' }
+            if (betterAuthSecret != '') {
+              name: 'BETTER_AUTH_SECRET'
+              secretRef: 'better-auth-secret'
+            }
+            if (resendApiKey != '') {
+              name: 'RESEND_API_KEY'
+              secretRef: 'resend-api-key'
+            }
+            if (stripeSecretKey != '') {
+              name: 'STRIPE_SECRET_KEY'
+              secretRef: 'stripe-secret-key'
+            }
+            if (metaAppId != '') {
+              name: 'META_APP_ID'
+              secretRef: 'meta-app-id'
+            }
+            if (metaAppSecret != '') {
+              name: 'META_APP_SECRET'
+              secretRef: 'meta-app-secret'
+            }
+            if (metaWebhookVerifyToken != '') {
+              name: 'META_WEBHOOK_VERIFY_TOKEN'
+              secretRef: 'meta-webhook-verify-token'
+            }
+            if (r2AccountId != '') {
+              name: 'R2_ACCOUNT_ID'
+              secretRef: 'r2-account-id'
+            }
+            if (r2AccessKeyId != '') {
+              name: 'R2_ACCESS_KEY_ID'
+              secretRef: 'r2-access-key-id'
+            }
+            if (r2SecretAccessKey != '') {
+              name: 'R2_SECRET_ACCESS_KEY'
+              secretRef: 'r2-secret-access-key'
+            }
             { name: 'R2_BUCKET', value: r2Bucket }
             { name: 'R2_PUBLIC_URL', value: r2PublicUrl }
             { name: 'CORS_ORIGIN', value: corsOrigin }
@@ -231,7 +258,10 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'API_PUBLIC_URL', value: publicApiUrl }
             { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
             { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }
-            { name: 'SUPER_ADMIN_PASSWORD', secretRef: 'super-admin-password' }
+            if (superAdminPassword != '') {
+              name: 'SUPER_ADMIN_PASSWORD'
+              secretRef: 'super-admin-password'
+            }
             { name: 'SUPER_ADMIN_NAME', value: superAdminName }
           ]
           resources: {
@@ -323,15 +353,15 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'redis-url'
           value: redisUrl
         }
-        {
+        if (metaAppId != '') {
           name: 'meta-app-id'
           value: metaAppId
         }
-        {
+        if (metaAppSecret != '') {
           name: 'meta-app-secret'
           value: metaAppSecret
         }
-        {
+        if (metaWebhookVerifyToken != '') {
           name: 'meta-webhook-verify-token'
           value: metaWebhookVerifyToken
         }
@@ -350,9 +380,18 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'NODE_ENV', value: 'production' }
             { name: 'DATABASE_URL', secretRef: 'database-url' }
             { name: 'REDIS_URL', secretRef: 'redis-url' }
-            { name: 'META_APP_ID', secretRef: 'meta-app-id' }
-            { name: 'META_APP_SECRET', secretRef: 'meta-app-secret' }
-            { name: 'META_WEBHOOK_VERIFY_TOKEN', secretRef: 'meta-webhook-verify-token' }
+            if (metaAppId != '') {
+              name: 'META_APP_ID'
+              secretRef: 'meta-app-id'
+            }
+            if (metaAppSecret != '') {
+              name: 'META_APP_SECRET'
+              secretRef: 'meta-app-secret'
+            }
+            if (metaWebhookVerifyToken != '') {
+              name: 'META_WEBHOOK_VERIFY_TOKEN'
+              secretRef: 'meta-webhook-verify-token'
+            }
             { name: 'MEDIA_UPLOAD_DIR', value: mediaUploadDir }
             { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
             { name: 'API_PUBLIC_URL', value: publicApiUrl }

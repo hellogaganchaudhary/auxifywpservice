@@ -93,7 +93,7 @@ jobs:
               corsOrigin="${{ secrets.CORS_ORIGIN }}" \
               appUrl="${{ secrets.APP_URL }}" \
               apiUrl="${{ secrets.API_URL }}" \
-              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL || secrets.API_URL }}" \
               mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
               superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
               superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
@@ -127,7 +127,7 @@ jobs:
               corsOrigin="${{ secrets.CORS_ORIGIN }}" \
               appUrl="${{ secrets.APP_URL }}" \
               apiUrl="${{ secrets.API_URL }}" \
-              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+              nextPublicApiUrl="${{ secrets.NEXT_PUBLIC_API_URL || secrets.API_URL }}" \
               mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
               superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
               superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
