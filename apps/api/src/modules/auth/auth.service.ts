@@ -173,7 +173,7 @@ export class AuthService {
 
   async issueRefreshToken(userId: string) {
     const token = await this.jwtService.signAsync(
-      { sub: userId, type: "refresh" },
+      { sub: userId, type: "refresh", jti: crypto.randomUUID() },
       {
         secret: process.env.JWT_REFRESH_SECRET || "dev_refresh",
         expiresIn: "30d",
@@ -196,14 +196,35 @@ export class AuthService {
     });
   }
 
+  async getCurrentUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.mapUser(user);
+  }
+
   async updateProfile(userId: string, payload: { name?: string; phone?: string; profileInfo?: string }) {
+    const data: { name?: string; phone?: string | null; profileInfo?: string | null } = {};
+
+    if (payload.name !== undefined) {
+      const name = payload.name.trim();
+      if (name) {
+        data.name = name;
+      }
+    }
+
+    if (payload.phone !== undefined) {
+      data.phone = payload.phone.trim() || null;
+    }
+
+    if (payload.profileInfo !== undefined) {
+      data.profileInfo = payload.profileInfo.trim() || null;
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        name: payload.name?.trim() || undefined,
-        phone: payload.phone?.trim() || null,
-        profileInfo: payload.profileInfo?.trim() || null,
-      },
+      data,
     });
     return this.mapUser(user);
   }

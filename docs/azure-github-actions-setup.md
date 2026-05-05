@@ -86,10 +86,23 @@ Add these repository secrets in GitHub Actions.
 
 Set these URL values after first successful deployment if Azure generates final hostnames:
 
-- `APP_URL`
-- `API_URL`
-- `NEXT_PUBLIC_API_URL`
-- `CORS_ORIGIN`
+- `APP_URL=https://<web-container-app-domain>`
+- `CORS_ORIGIN=https://<web-container-app-domain>`
+- `API_URL=https://<api-container-app-domain>`
+- `NEXT_PUBLIC_API_URL=https://<api-container-app-domain>`
+
+Do not set `API_URL` or `NEXT_PUBLIC_API_URL` to the frontend URL. They must point to the deployed API service because the Meta callback is served by the API.
+
+## Meta WhatsApp webhook setup
+
+In Meta App Dashboard → WhatsApp → Configuration, use:
+
+- Callback URL: `${API_URL}/webhooks/meta`
+- Verify token: the same value as `META_WEBHOOK_VERIFY_TOKEN`
+
+Production must use the deployed API URL. Ngrok is only for local development.
+
+WhatsApp profile credentials must be saved while logged in as an organization `ADMIN`. The seeded `SUPER_ADMIN` account is platform-level only and does not belong to an organization, so it cannot save WABA credentials.
 
 ## Notes
 

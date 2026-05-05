@@ -30,24 +30,24 @@ export class OrganizationService {
     return this.prisma.wabaConfig.findUnique({ where: { organizationId } });
   }
 
-  async getWabaWebhookProfile(organizationId: string) {
+  async getWabaWebhookProfile(organizationId: string, requestBaseUrl = "") {
     if (!organizationId) {
       throw new BadRequestException("Organization required");
     }
     const config = await this.getWabaConfig(organizationId);
-    const configuredBaseUrl =
-      process.env.PUBLIC_WEBHOOK_BASE_URL ||
-      process.env.NGROK_URL ||
-      process.env.API_PUBLIC_URL ||
-      "";
-    const detectedNgrokUrl = configuredBaseUrl ? "" : await this.detectLocalNgrokUrl();
-    const baseUrl = configuredBaseUrl || detectedNgrokUrl || process.env.NEXT_PUBLIC_API_URL || "";
-    const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
+    const isProduction = process.env.NODE_ENV === "production";
+    const configuredBaseUrl = process.env.PUBLIC_WEBHOOK_BASE_URL || process.env.API_PUBLIC_URL || "";
+    const requestUrl = this.isLocalUrl(requestBaseUrl) ? "" : requestBaseUrl;
+    const configuredLocalTunnelUrl = isProduction ? "" : process.env.NGROK_URL || "";
+    const detectedNgrokUrl = configuredBaseUrl || requestUrl || isProduction ? "" : await this.detectLocalNgrokUrl();
+    const localFallbackUrl = isProduction ? "" : process.env.NEXT_PUBLIC_API_URL || "";
+    const baseUrl = configuredBaseUrl || requestUrl || configuredLocalTunnelUrl || detectedNgrokUrl || localFallbackUrl || "";
+    const normalizedBaseUrl = this.normalizeUrl(baseUrl);
 
     return {
       callbackUrl: normalizedBaseUrl ? `${normalizedBaseUrl}/webhooks/meta` : null,
       verifyToken: config?.webhookVerifyToken || process.env.META_WEBHOOK_VERIFY_TOKEN || null,
-      isPublicUrlConfigured: Boolean(normalizedBaseUrl && !normalizedBaseUrl.includes("localhost")),
+      isPublicUrlConfigured: Boolean(normalizedBaseUrl && !this.isLocalUrl(normalizedBaseUrl)),
       configuredBaseUrl: normalizedBaseUrl || null,
     };
   }
@@ -279,5 +279,13 @@ export class OrganizationService {
     } catch {
       return "";
     }
+  }
+
+  private normalizeUrl(url: string) {
+    return url.trim().replace(/\/$/, "");
+  }
+
+  private isLocalUrl(url: string) {
+    return /(^$|localhost|127\.0\.0\.1|0\.0\.0\.0|\.local)(:\d+)?/i.test(url);
   }
 }

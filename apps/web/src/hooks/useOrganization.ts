@@ -41,6 +41,23 @@ export type WabaWebhookLog = {
   processedAt?: string | null;
 };
 
+function getApiErrorMessage(error: any) {
+  const message = error?.response?.data?.message;
+  if (typeof message === "string") return message;
+  if (typeof message?.message === "string") return message.message;
+  if (Array.isArray(message)) return message.join(" ");
+  return error?.message || "";
+}
+
+function isOrganizationAccessError(error: any) {
+  const status = error?.response?.status;
+  const message = getApiErrorMessage(error).toLowerCase();
+  return status === 400 && message.includes("organization required");
+}
+
+const organizationAdminRequiredMessage =
+  "Login as an organization admin to manage WhatsApp settings. The platform super-admin account cannot save organization WhatsApp credentials.";
+
 export function useOrganization() {
   const [organization, setOrganization] = useState<OrganizationProfile | null>(null);
   const [wabaConfig, setWabaConfig] = useState<WabaConfig | null>(null);
@@ -71,7 +88,7 @@ export function useOrganization() {
       setWabaConfig(null);
       setWebhookProfile(null);
       setWebhookLogs([]);
-      setError(loadError?.response?.status === 401 ? "Please login as an organization admin to view WhatsApp settings." : "Unable to load organization settings.");
+      setError(loadError?.response?.status === 401 || isOrganizationAccessError(loadError) ? organizationAdminRequiredMessage : "Unable to load organization settings.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +102,7 @@ export function useOrganization() {
       setOrganization(data);
       return data;
     } catch (updateError: any) {
-      setError(updateError?.response?.status === 400 ? "Organization profile is unavailable for this account." : "Unable to update organization.");
+      setError(isOrganizationAccessError(updateError) ? organizationAdminRequiredMessage : "Unable to update organization.");
       return null;
     } finally {
       setSaving(false);
@@ -106,7 +123,7 @@ export function useOrganization() {
       setWabaConfig(data);
       return data;
     } catch (updateError: any) {
-      setError(updateError?.response?.status === 400 ? "Organization admin access is required to save WhatsApp credentials." : "Unable to save WhatsApp credentials.");
+      setError(isOrganizationAccessError(updateError) ? organizationAdminRequiredMessage : "Unable to save WhatsApp credentials.");
       return null;
     } finally {
       setSaving(false);
@@ -127,7 +144,7 @@ export function useOrganization() {
       setWabaConfig(data);
       return data;
     } catch (syncError: any) {
-      setError(syncError?.response?.status === 400 ? "Organization admin access is required to sync WhatsApp credentials." : "Unable to fetch WhatsApp profile.");
+      setError(isOrganizationAccessError(syncError) ? organizationAdminRequiredMessage : "Unable to fetch WhatsApp profile.");
       return null;
     } finally {
       setSyncing(false);

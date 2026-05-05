@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type AuthUser = {
   id: string;
@@ -17,9 +18,18 @@ type AuthState = {
   setLoading: (isLoading: boolean) => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isLoading: true,
-  setUser: (user) => set({ user }),
-  setLoading: (isLoading) => set({ isLoading }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isLoading: true,
+      setUser: (user) => set({ user }),
+      setLoading: (isLoading) => set({ isLoading }),
+    }),
+    {
+      name: "whatsappai.authUser",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ user: state.user }),
+    }
+  )
+);

@@ -39,7 +39,7 @@ export default function WhatsAppSettingsPage() {
 
   const connected = Boolean(form.accessToken && form.phoneNumberId && form.wabaId);
   const verified = Boolean(wabaConfig?.verifiedAt || wabaConfig?.status === "VERIFIED");
-  const callbackUrl = webhookProfile?.callbackUrl || (error ? "Login as an organization admin to load the callback URL." : "Start ngrok and refresh this page to generate the public callback URL.");
+  const callbackUrl = webhookProfile?.callbackUrl || (error ? "Login as an organization admin to load the callback URL." : "Set PUBLIC_WEBHOOK_BASE_URL/API_PUBLIC_URL to your production API URL.");
 
   useEffect(() => {
     if (!wabaConfig) return;
@@ -55,13 +55,17 @@ export default function WhatsAppSettingsPage() {
   async function handleSyncProfile() {
     setMessage(null);
     try {
-      await syncWabaConfig({
+      const savedProfile = await syncWabaConfig({
         accessToken: form.accessToken,
         businessAccountId: form.businessAccountId || undefined,
         wabaId: form.wabaId || undefined,
         phoneNumberId: form.phoneNumberId || undefined,
         webhookVerifyToken: form.webhookVerifyToken || undefined,
       });
+      if (!savedProfile) {
+        setMessage("Unable to fetch or save WhatsApp profile. Login as an organization admin and confirm the Meta token has WhatsApp permissions.");
+        return;
+      }
       await reload();
       setMessage("WhatsApp profile fetched and saved successfully.");
     } catch (error: any) {
@@ -72,7 +76,11 @@ export default function WhatsAppSettingsPage() {
   async function handleSaveManual() {
     setMessage(null);
     try {
-      await updateWabaConfig(form);
+      const savedProfile = await updateWabaConfig(form);
+      if (!savedProfile) {
+        setMessage("Unable to save WhatsApp credentials. Login as an organization admin; the platform super-admin account cannot save organization WhatsApp settings.");
+        return;
+      }
       await reload();
       setMessage("Manual WhatsApp credentials saved.");
     } catch (error: any) {
@@ -219,7 +227,7 @@ export default function WhatsAppSettingsPage() {
               <p className="mt-2 text-sm leading-6 text-slate-600">Paste these values in Meta App Dashboard → WhatsApp → Configuration.</p>
             </div>
             <Badge tone={webhookProfile?.isPublicUrlConfigured ? "success" : "error"}>
-              {webhookProfile?.isPublicUrlConfigured ? "Public URL ready" : "Use ngrok URL"}
+              {webhookProfile?.isPublicUrlConfigured ? "Public URL ready" : "Public URL required"}
             </Badge>
           </div>
           <div className="mt-5 space-y-3">
@@ -229,7 +237,7 @@ export default function WhatsAppSettingsPage() {
                 {callbackUrl}
               </div>
               {!error && !webhookProfile?.isPublicUrlConfigured ? (
-                <p className="mt-2 text-xs text-rose-600">Localhost cannot be used in Meta. Keep ngrok running, restart the API with PUBLIC_WEBHOOK_BASE_URL, or refresh after ngrok starts.</p>
+                <p className="mt-2 text-xs text-rose-600">Production must use your deployed API URL, for example https://your-api-domain/webhooks/meta. Ngrok is only for local development.</p>
               ) : null}
             </div>
             <div>

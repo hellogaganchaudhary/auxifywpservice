@@ -36,7 +36,10 @@ export class OrganizationController {
 
   @Get("waba-config/webhook-profile")
   async getWabaWebhookProfile(@Req() req: any) {
-    return this.organizationService.getWabaWebhookProfile(req.user.organizationId);
+    const forwardedProto = String(req.headers?.["x-forwarded-proto"] || req.protocol || "https").split(",")[0];
+    const forwardedHost = String(req.headers?.["x-forwarded-host"] || req.headers?.host || "").split(",")[0];
+    const requestBaseUrl = forwardedHost ? `${forwardedProto}://${forwardedHost}` : "";
+    return this.organizationService.getWabaWebhookProfile(req.user.organizationId, requestBaseUrl);
   }
 
   @Get("waba-config/webhook-logs")

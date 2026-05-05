@@ -11,10 +11,17 @@ export function useAuth() {
 
   const bootstrap = useCallback(async () => {
     try {
-      const refresh = await api.get("/auth/refresh");
-      if (refresh.data?.accessToken) {
-        setAccessToken(refresh.data.accessToken);
+      try {
+        const me = await api.get("/auth/me");
+        setUser(me.data.user);
+        return;
+      } catch {
+        const refresh = await api.get("/auth/refresh");
+        if (refresh.data?.accessToken) {
+          setAccessToken(refresh.data.accessToken);
+        }
       }
+
       const me = await api.get("/auth/me");
       setUser(me.data.user);
     } catch {

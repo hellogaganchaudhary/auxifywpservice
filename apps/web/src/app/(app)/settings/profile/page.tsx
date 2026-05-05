@@ -70,7 +70,13 @@ export default function ProfileSettingsPage() {
                 setSaving(true);
                 setMessage(null);
                 try {
-                  await updateProfile({ name: form.name.trim(), phone: form.mobile.trim(), profileInfo: form.info.trim() });
+                  const savedUser = await updateProfile({ name: form.name.trim(), phone: form.mobile.trim(), profileInfo: form.info.trim() });
+                  setForm({
+                    name: savedUser.name,
+                    email: savedUser.email,
+                    mobile: savedUser.phone || "",
+                    info: savedUser.profileInfo || "",
+                  });
                   setMessage("Profile saved permanently.");
                 } catch (error: any) {
                   setMessage(error?.response?.data?.message || "Profile update failed.");

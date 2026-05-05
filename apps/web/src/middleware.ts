@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+  if (PUBLIC_PATHS.some((path) => pathname === path || (path !== "/" && pathname.startsWith(`${path}/`)))) {
     return NextResponse.next();
   }
   const hasRefreshToken = request.cookies.get("refreshToken")?.value;
