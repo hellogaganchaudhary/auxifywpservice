@@ -21,6 +21,9 @@ param workerAppName string = 'wpservice-worker'
 @description('Log Analytics workspace name')
 param logAnalyticsName string = 'wpservice-logs'
 
+@description('Existing Azure Database for PostgreSQL Flexible Server name')
+param postgresServerName string = 'wpservice-api-db'
+
 @description('API image reference')
 param apiImage string
 
@@ -303,6 +306,20 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = 
     adminUserEnabled: true
     publicNetworkAccess: 'Enabled'
     anonymousPullEnabled: false
+  }
+}
+
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' existing = {
+  name: postgresServerName
+}
+
+// Allows Azure-hosted services such as Azure Container Apps to connect to the existing PostgreSQL server.
+resource allowAzureServicesToPostgres 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+  parent: postgresServer
+  name: 'AllowAllWindowsAzureIps'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
   }
 }
 
