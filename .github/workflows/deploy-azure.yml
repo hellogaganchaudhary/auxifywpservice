@@ -157,3 +157,36 @@ jobs:
         run: |
           echo "API: https://$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$API_APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)"
           echo "Web: https://$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$WEB_APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)"
+
+      - name: Diagnose Container Apps deployment
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "Expected API image: ${{ steps.acr.outputs.login_server }}/api:${{ github.sha }}"
+          echo "Expected Web image: ${{ steps.acr.outputs.login_server }}/web:${{ github.sha }}"
+
+          echo "=== API container app image / revision / traffic ==="
+          az containerapp show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --query "{latestRevisionName:properties.latestRevisionName,latestReadyRevisionName:properties.latestReadyRevisionName,runningStatus:properties.runningStatus,provisioningState:properties.provisioningState,image:properties.template.containers[0].image,env:properties.template.containers[0].env[?name=='BUILD_SHA' || name=='BUILD_IMAGE'],traffic:properties.configuration.ingress.traffic}" \
+            -o json
+
+          echo "=== API revisions ==="
+          az containerapp revision list \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --query "[].{name:name,active:properties.active,trafficWeight:properties.trafficWeight,createdTime:properties.createdTime,runningState:properties.runningState,provisioningState:properties.provisioningState,image:properties.template.containers[0].image}" \
+            -o table
+
+          echo "=== API recent logs ==="
+          az containerapp logs show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$API_APP_NAME" \
+            --tail 100 || true
+
+          API_FQDN=$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$API_APP_NAME" --query properties.configuration.ingress.fqdn -o tsv)
+          echo "=== API /health smoke ==="
+          HEALTH_BODY=$(curl -fsS "https://$API_FQDN/health?sha=${{ github.sha }}")
+          echo "$HEALTH_BODY"
+          echo "$HEALTH_BODY" | grep -F "${{ github.sha }}"
