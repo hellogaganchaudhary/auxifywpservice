@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
 import { setAccessToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
@@ -59,19 +58,27 @@ export default function SignupPage() {
     }
 
     try {
-      const { data } = await api.post("/auth/signup", {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
         organizationName: String(formData.get("organizationName") || ""),
         adminName: String(formData.get("adminName") || ""),
         email: String(formData.get("email") || ""),
         password,
         plan: selectedPlan,
+        }),
       });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.message || "Could not create account. Try another email.");
+      }
       setAccessToken(data.accessToken);
       setUser(data.user);
       setLoading(false);
       router.push("/dashboard");
     } catch (signupError: any) {
-      setError(signupError?.response?.data?.message || "Could not create account. Try another email.");
+      setError(signupError?.message || "Could not create account. Try another email.");
     } finally {
       setSubmitting(false);
     }

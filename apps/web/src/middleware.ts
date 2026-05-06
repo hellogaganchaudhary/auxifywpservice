@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/accept-invite",
+  "/api/auth/signup",
 ];
 
 export function middleware(request: NextRequest) {

@@ -425,6 +425,7 @@ resource webApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'NODE_ENV', value: 'production' }
             { name: 'PORT', value: '3000' }
             { name: 'NEXT_PUBLIC_API_URL', value: nextPublicApiUrl }
+            { name: 'API_URL', value: apiUrl }
           ]
           resources: {
             cpu: json('0.5')

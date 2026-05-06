@@ -75,7 +75,7 @@ jobs:
         run: |
           docker build \
             -f apps/web/Dockerfile \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || secrets.API_URL }} \
             -t ${{ steps.acr.outputs.login_server }}/web:${{ github.sha }} .
           docker push ${{ steps.acr.outputs.login_server }}/web:${{ github.sha }}
 
