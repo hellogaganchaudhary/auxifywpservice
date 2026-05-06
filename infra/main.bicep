@@ -84,6 +84,9 @@ param superAdminEmail string
 @secure()
 param superAdminPassword string
 param superAdminName string = 'Platform Super Admin'
+param resetProductionUsers string = 'false'
+@secure()
+param resetProductionConfirmation string = ''
 
 var apiOptionalSecrets = concat(
   betterAuthSecret != '' ? [
@@ -144,6 +147,12 @@ var apiOptionalSecrets = concat(
     {
       name: 'super-admin-password'
       value: superAdminPassword
+    }
+  ] : [],
+  resetProductionConfirmation != '' ? [
+    {
+      name: 'reset-production-confirmation'
+      value: resetProductionConfirmation
     }
   ] : []
 )
@@ -207,6 +216,12 @@ var apiOptionalEnv = concat(
     {
       name: 'SUPER_ADMIN_PASSWORD'
       secretRef: 'super-admin-password'
+    }
+  ] : [],
+  resetProductionConfirmation != '' ? [
+    {
+      name: 'RESET_PRODUCTION_CONFIRMATION'
+      secretRef: 'reset-production-confirmation'
     }
   ] : []
 )
@@ -358,6 +373,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
               { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
               { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }
               { name: 'SUPER_ADMIN_NAME', value: superAdminName }
+              { name: 'RESET_PRODUCTION_USERS', value: resetProductionUsers }
             ],
             apiOptionalEnv
           )

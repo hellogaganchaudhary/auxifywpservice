@@ -4,6 +4,20 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      resetProductionUsers:
+        description: 'Destructive: delete all tenant data and all users except the configured super admin'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      resetProductionConfirmation:
+        description: 'Required phrase for destructive reset: DELETE LIVE USERS AND TENANT DATA'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   id-token: write
@@ -98,7 +112,9 @@ jobs:
               mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
               superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
               superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
-              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}"
+              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}" \
+              resetProductionUsers="${{ github.event_name == 'workflow_dispatch' && inputs.resetProductionUsers || 'false' }}" \
+              resetProductionConfirmation="${{ github.event_name == 'workflow_dispatch' && inputs.resetProductionConfirmation || '' }}"
 
       - name: Deploy application images
         run: |
@@ -133,7 +149,9 @@ jobs:
               mediaUploadDir="${{ secrets.MEDIA_UPLOAD_DIR }}" \
               superAdminEmail="${{ secrets.SUPER_ADMIN_EMAIL }}" \
               superAdminPassword="${{ secrets.SUPER_ADMIN_PASSWORD }}" \
-              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}"
+              superAdminName="${{ secrets.SUPER_ADMIN_NAME }}" \
+              resetProductionUsers="${{ github.event_name == 'workflow_dispatch' && inputs.resetProductionUsers || 'false' }}" \
+              resetProductionConfirmation="${{ github.event_name == 'workflow_dispatch' && inputs.resetProductionConfirmation || '' }}"
 
       - name: Show live URLs
         run: |
