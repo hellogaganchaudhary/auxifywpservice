@@ -99,7 +99,10 @@ export default function LoginPage() {
               </form>
               <div className="mt-6 flex flex-col gap-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
                 <Link href="/forgot-password" className="hover:text-text-primary">Forgot password?</Link>
-                <Link href="/accept-invite" className="hover:text-text-primary">Accept invite / sign up</Link>
+                <div className="flex gap-3">
+                  <Link href="/accept-invite" className="hover:text-text-primary">Accept invite</Link>
+                  <Link href="/signup" className="font-semibold text-accent hover:text-accent-hover">Create admin account</Link>
+                </div>
               </div>
             </div>
           </div>

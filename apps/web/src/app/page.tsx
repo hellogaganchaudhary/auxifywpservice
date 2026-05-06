@@ -35,7 +35,7 @@ export default function HomePage() {
               Auxify Engage is the complete WhatsApp Business platform trusted by fast-growing companies. Full two-way messaging, rich media, interactive messages, intelligent broadcasts, and real-time analytics — all in one elegant, enterprise-grade workspace.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href="/accept-invite"><Button className="h-12 rounded-full px-7">Start 14-day Enterprise Trial</Button></Link>
+              <Link href="/signup"><Button className="h-12 rounded-full px-7">Start without payment</Button></Link>
               <Link href="/contact"><Button variant="ghost" className="h-12 rounded-full px-7">Watch 90-second demo</Button></Link>
             </div>
             <div className="mt-9 flex flex-wrap gap-3">

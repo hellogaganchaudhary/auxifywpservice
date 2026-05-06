@@ -9,8 +9,10 @@ import crypto from "crypto";
 import { UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthUser } from "./types/auth.types";
-import { InviteAcceptDto, InviteCreateDto, LoginDto } from "./dto/auth.dto";
+import { InviteAcceptDto, InviteCreateDto, LoginDto, SignupDto } from "./dto/auth.dto";
 import { EmailService } from "../email/email.service";
+
+const SIGNUP_PLANS = new Set(["starter", "growth", "business", "enterprise"]);
 
 @Injectable()
 export class AuthService {
@@ -52,6 +54,80 @@ export class AuthService {
     }
     const authUser = this.mapUser(user);
     return this.issueTokens(authUser);
+  }
+
+  async signup(payload: SignupDto) {
+    const organizationName = payload.organizationName?.trim();
+    const adminName = payload.adminName?.trim();
+    const email = payload.email?.trim().toLowerCase();
+    const password = payload.password?.trim();
+    const plan = SIGNUP_PLANS.has(payload.plan) ? payload.plan : "starter";
+
+    if (!organizationName || !adminName || !email || !password) {
+      throw new BadRequestException("Organization name, admin name, email, and password are required");
+    }
+    if (password.length < 8) {
+      throw new BadRequestException("Password must be at least 8 characters");
+    }
+
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new BadRequestException("An account with this email already exists");
+    }
+
+    const slug = await this.createUniqueOrganizationSlug(organizationName);
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: {
+          name: organizationName,
+          slug,
+          plan,
+          isActive: true,
+          wallet: {
+            create: {
+              balance: 0,
+              currency: "USD",
+              autoRechargeEnabled: false,
+              autoRechargeThreshold: 0,
+              autoRechargeAmount: 0,
+            },
+          },
+        },
+      });
+
+      const admin = await tx.user.create({
+        data: {
+          email,
+          name: adminName,
+          passwordHash,
+          role: UserRole.ADMIN,
+          organizationId: organization.id,
+          invitedBy: "self_signup",
+          acceptedInviteAt: new Date(),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          organizationId: organization.id,
+          actorId: admin.id,
+          action: "org.self_signup",
+          resourceType: "Organization",
+          resourceId: organization.id,
+          metadata: {
+            plan,
+            organizationName,
+            adminEmail: email,
+          },
+        },
+      });
+
+      return admin;
+    });
+
+    return this.issueTokens(this.mapUser(user));
   }
 
   async refresh(userId: string) {
@@ -268,6 +344,23 @@ export class AuthService {
       },
     });
     return `${this.getAppUrl()}/reset-password?token=${token}`;
+  }
+
+  private async createUniqueOrganizationSlug(name: string) {
+    const base = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "organization";
+    let slug = base;
+    let counter = 2;
+
+    while (await this.prisma.organization.findUnique({ where: { slug } })) {
+      slug = `${base}-${counter}`;
+      counter += 1;
+    }
+
+    return slug;
   }
 
   private getAppUrl() {

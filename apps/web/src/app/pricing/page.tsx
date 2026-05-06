@@ -24,7 +24,7 @@ export default function PricingPage() {
             <ul className={`mt-6 space-y-3 text-sm ${plan.featured ? "text-blue-50" : "text-slate-600"}`}>
               {plan.features.map((feature) => <li key={feature} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />{feature}</li>)}
             </ul>
-            <Link href="/accept-invite"><Button variant={plan.featured ? "solid" : "ghost"} className={`mt-7 w-full rounded-full ${plan.featured ? "bg-white text-accent hover:bg-blue-50" : ""}`}>Start 14-day free trial</Button></Link>
+            <Link href="/signup"><Button variant={plan.featured ? "solid" : "ghost"} className={`mt-7 w-full rounded-full ${plan.featured ? "bg-white text-accent hover:bg-blue-50" : ""}`}>Start without payment</Button></Link>
           </article>
         ))}
       </section>

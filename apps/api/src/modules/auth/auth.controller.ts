@@ -4,7 +4,7 @@ import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
 import { JwtRefreshGuard } from "./guards/jwt-refresh.guard";
-import { InviteAcceptDto, InviteCreateDto, LoginDto } from "./dto/auth.dto";
+import { InviteAcceptDto, InviteCreateDto, LoginDto, SignupDto } from "./dto/auth.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -13,6 +13,18 @@ export class AuthController {
   @Post("login")
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(body);
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    });
+    return { accessToken: result.accessToken, user: result.user };
+  }
+
+  @Post("signup")
+  async signup(@Body() body: SignupDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.signup(body);
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       sameSite: "lax",

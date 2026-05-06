@@ -5,6 +5,14 @@ export type LoginDto = {
   password: string;
 };
 
+export type SignupDto = {
+  organizationName: string;
+  adminName: string;
+  email: string;
+  password: string;
+  plan: string;
+};
+
 export type InviteAcceptDto = {
   token: string;
   name: string;
