@@ -376,6 +376,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
               { name: 'APP_URL', value: appUrl }
               { name: 'API_URL', value: apiUrl }
               { name: 'API_PUBLIC_URL', value: publicApiUrl }
+              { name: 'BUILD_IMAGE', value: apiImage }
+              { name: 'BUILD_SHA', value: last(split(apiImage, ':')) }
               { name: 'EMAIL_FROM', value: emailFrom }
               { name: 'PUBLIC_WEBHOOK_BASE_URL', value: publicApiUrl }
               { name: 'SUPER_ADMIN_EMAIL', value: superAdminEmail }

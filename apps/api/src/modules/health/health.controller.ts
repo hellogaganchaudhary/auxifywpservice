@@ -5,7 +5,12 @@ import * as Sentry from "@sentry/nestjs";
 export class HealthController {
   @Get()
   getHealth() {
-    return { status: "ok" };
+    return {
+      status: "ok",
+      buildSha: process.env.BUILD_SHA ?? null,
+      buildImage: process.env.BUILD_IMAGE ?? null,
+      signupRouteExpected: true,
+    };
   }
 
   @Get("error")
