@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+function getApiUrl(request: NextRequest) {
+  const configuredUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+  const requestHost = request.headers.get("host") || "";
+
+  if (configuredUrl && !configuredUrl.includes(requestHost)) {
+    return configuredUrl;
+  }
+
+  if (requestHost.startsWith("wpservice-web.")) {
+    return `https://${requestHost.replace("wpservice-web.", "wpservice-api.")}`;
+  }
+
+  return "http://localhost:4000";
+}
 
 export async function POST(request: NextRequest) {
+  const apiUrl = getApiUrl(request);
+
   if (!apiUrl) {
     return NextResponse.json({ message: "API URL is not configured" }, { status: 500 });
   }
