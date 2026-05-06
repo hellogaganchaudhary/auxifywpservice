@@ -34,6 +34,11 @@ export class AuthController {
     return { accessToken: result.accessToken, user: result.user };
   }
 
+  @Get("signup/health")
+  signupHealth() {
+    return { ok: true, route: "auth.signup", version: "2026-05-06" };
+  }
+
   @Post("super-admin/login")
   async superAdminLogin(
     @Body() body: LoginDto,
